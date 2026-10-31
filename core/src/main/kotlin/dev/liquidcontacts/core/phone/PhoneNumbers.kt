@@ -34,17 +34,23 @@ class PhoneNumbers(
     defaultAreaCode: String? = null,
 ) {
     private val util = PhoneNumberUtil.getInstance()
+    private val countryCode = util.getCountryCodeForRegion(region)
     private val area: String? = defaultAreaCode?.filter(Char::isDigit)?.trimStart('0')?.takeIf { it.length in 2..4 }
 
     fun key(raw: String): PhoneKey {
         val digits = raw.filter(Char::isDigit)
-        val exact = exact(raw)
-        // Completo: los últimos 8 de la forma canónica. Incompleto: sin el 0 ni el 15 de adelante,
-        // y solo si queda un abonado de 8 dígitos o más (en el interior son de 6 o 7: ahí hace
-        // falta el código de área por defecto).
-        val local = if (exact != null) exact.drop(1) else localDigits(digits)
-        val tail = if (local.length >= TAIL) local.takeLast(TAIL) else null
-        return PhoneKey(exact, tail, digits)
+        val parsed = parse(raw) ?: completeWithArea(raw)
+        // La cola son los últimos 8 dígitos del abonado (sin código de área), y solo si tiene 8 o
+        // más: en el interior son de 6 o 7, y tomar 8 mezclaría dígitos del código de área. Un
+        // número completo de otro país no tiene cola: nunca coincide con uno local incompleto.
+        val tail = if (parsed != null) {
+            val nsn = util.getNationalSignificantNumber(parsed)
+            val subscriber = nsn.length - util.getLengthOfNationalDestinationCode(parsed)
+            nsn.takeLast(TAIL).takeIf { parsed.countryCode == countryCode && subscriber >= TAIL }
+        } else {
+            localDigits(digits).takeIf { it.length >= TAIL }?.takeLast(TAIL)
+        }
+        return PhoneKey(parsed?.let(::canonical), tail, digits)
     }
 
     private fun localDigits(digits: String): String {
@@ -57,6 +63,18 @@ class PhoneNumbers(
     fun exact(raw: String): String? {
         val parsed = parse(raw) ?: completeWithArea(raw) ?: return null
         return canonical(parsed)
+    }
+
+    /**
+     * Si parece un número local al que le falta el código de área ("15 2345-6789", "421-0000"):
+     * no se pudo completar, no es internacional y tiene entre 6 y 10 dígitos (los códigos cortos
+     * y de marcado no cuentan). Es lo que arregla el ajuste "Código de área por defecto".
+     */
+    fun missingAreaCode(raw: String): Boolean {
+        val text = raw.trim()
+        if (text.startsWith("+") || text.startsWith("00") || text.any { it == '*' || it == '#' }) return false
+        val digits = text.filter(Char::isDigit)
+        return digits.length in 6..10 && parse(raw) == null && completeWithArea(raw) == null
     }
 
     /** Para mostrar: formato internacional o nacional según el país; si no se entiende, tal cual. */
@@ -79,7 +97,8 @@ class PhoneNumbers(
     }
 
     private fun parse(raw: String): PhoneNumber? {
-        val text = raw.trim()
+        // libphonenumber entiende "ext." y "x" pero no "int." ni "interno".
+        val text = EXTENSION.replace(raw.trim(), " ext. $1")
         if (text.count(Char::isDigit) < 6) return null
         return try {
             util.parse(text, region).takeIf { util.isValidNumber(it) }
@@ -114,6 +133,8 @@ class PhoneNumbers(
     companion object {
         /** Dígitos de la coincidencia aproximada: el abonado más corto de Argentina tiene 6, el de Buenos Aires 8. */
         const val TAIL = 8
+
+        private val EXTENSION = Regex("\\s*(?:int\\.?|interno|extensi[oó]n)\\s*(\\d{1,6})\\s*$", RegexOption.IGNORE_CASE)
     }
 }
 

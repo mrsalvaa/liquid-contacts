@@ -12,19 +12,60 @@ import dev.liquidcontacts.core.text.Fold
 /** Por qué dos contactos parecen el mismo. */
 enum class DuplicateReason { SAME_NAME, SAME_PHONE, SAME_EMAIL }
 
+/**
+ * Confianza de un grupo. [HIGH]: el mismo nombre completo. [LOW]: comparten un número o un email
+ * pero tienen nombres distintos ("posible duplicado": puede ser una línea o un email compartido,
+ * como el de una familia). La interfaz no preselecciona los de confianza baja.
+ */
+enum class DuplicateConfidence { HIGH, LOW }
+
 /** Contactos que parecen la misma persona, con los motivos. Siempre 2 o más. */
-data class DuplicateGroup(val contacts: List<Contact>, val reasons: Set<DuplicateReason>)
+data class DuplicateGroup(
+    val contacts: List<Contact>,
+    val reasons: Set<DuplicateReason>,
+    val confidence: DuplicateConfidence,
+)
 
 /**
  * Detección y unión de duplicados. Solo con coincidencias exactas: el mismo nombre completo (sin
  * importar tildes, mayúsculas ni espacios), el mismo número completo (clave exacta de
  * [PhoneNumbers], nunca la aproximada de 8 dígitos) o el mismo email. Nada se une sin que el
  * usuario vea la vista previa de [merge] y confirme.
+ *
+ * Los grupos de cada confianza se arman por separado y no se encadenan entre sí: si A y B se
+ * llaman igual y B comparte el número con C, salen {A, B} (alta) y {B, C} (baja), nunca {A, B, C}.
  */
 class Duplicates(private val numbers: PhoneNumbers) {
 
     fun find(contacts: List<Contact>): List<DuplicateGroup> {
-        val parent = IntArray(contacts.size) { it }
+        val names = contacts.map(::nameKey)
+        val high = components(contacts.size, links(contacts.indices.map { i -> listOfNotNull(names[i]) }, DuplicateReason.SAME_NAME))
+            .map { (members, reasons) -> DuplicateGroup(members.map { contacts[it] }, reasons, DuplicateConfidence.HIGH) }
+        // Baja: mismo número o email entre contactos con distinto nombre (o sin nombre). Los que se
+        // llaman igual ya están en un grupo de confianza alta.
+        val shared = links(contacts.map { c -> c.phones.mapNotNull { numbers.exact(it.number) } }, DuplicateReason.SAME_PHONE) +
+            links(contacts.map { c -> c.emails.map { emailKey(it.address) }.filter { it.isNotEmpty() } }, DuplicateReason.SAME_EMAIL)
+        val low = components(contacts.size, shared.filter { (a, b, _) -> names[a] == null || names[a] != names[b] })
+            .map { (members, reasons) -> DuplicateGroup(members.map { contacts[it] }, reasons, DuplicateConfidence.LOW) }
+        return high + low
+    }
+
+    /** Pares (i, j) con alguna clave en común, i < j. */
+    private fun links(keys: List<Collection<String>>, reason: DuplicateReason): List<Triple<Int, Int, DuplicateReason>> {
+        val firstWith = HashMap<String, Int>()
+        val out = mutableListOf<Triple<Int, Int, DuplicateReason>>()
+        keys.forEachIndexed { i, ks ->
+            for (k in ks.toSet()) {
+                val j = firstWith.putIfAbsent(k, i) ?: continue
+                if (j != i) out += Triple(j, i, reason)
+            }
+        }
+        return out
+    }
+
+    /** Componentes conexas de [links]: solo las de 2 o más, en el orden de la lista original. */
+    private fun components(size: Int, links: List<Triple<Int, Int, DuplicateReason>>): List<Pair<List<Int>, Set<DuplicateReason>>> {
+        val parent = IntArray(size) { it }
         fun root(i: Int): Int {
             var r = i
             while (parent[r] != r) r = parent[r]
@@ -32,31 +73,13 @@ class Duplicates(private val numbers: PhoneNumbers) {
             while (parent[j] != r) { val next = parent[j]; parent[j] = r; j = next }
             return r
         }
-        // Motivos por par unido: se acumulan en la raíz al final.
-        val links = mutableListOf<Triple<Int, Int, DuplicateReason>>()
-
-        fun linkBy(reason: DuplicateReason, keysOf: (Contact) -> Collection<String>) {
-            val seen = HashMap<String, Int>()
-            contacts.forEachIndexed { i, c ->
-                for (k in keysOf(c).toSet()) {
-                    val j = seen.putIfAbsent(k, i) ?: continue
-                    if (j != i) {
-                        links += Triple(j, i, reason)
-                        val (a, b) = root(j) to root(i)
-                        if (a != b) parent[b] = a
-                    }
-                }
-            }
+        for ((a, b, _) in links) {
+            val (ra, rb) = root(a) to root(b)
+            if (ra != rb) parent[maxOf(ra, rb)] = minOf(ra, rb)
         }
-        linkBy(DuplicateReason.SAME_NAME) { c -> listOfNotNull(nameKey(c)) }
-        linkBy(DuplicateReason.SAME_PHONE) { c -> c.phones.mapNotNull { numbers.exact(it.number) } }
-        linkBy(DuplicateReason.SAME_EMAIL) { c -> c.emails.map { emailKey(it.address) }.filter { it.isNotEmpty() } }
-
         val reasons = HashMap<Int, MutableSet<DuplicateReason>>()
-        for ((a, _, reason) in links) reasons.getOrPut(root(a)) { mutableSetOf() } += reason
-        return contacts.indices.groupBy(::root)
-            .filterValues { it.size > 1 }
-            .map { (r, members) -> DuplicateGroup(members.map { contacts[it] }, reasons[r].orEmpty()) }
+        for ((a, _, r) in links) reasons.getOrPut(root(a)) { mutableSetOf() } += r
+        return (0 until size).groupBy(::root).filterValues { it.size > 1 }.map { (r, members) -> members to reasons[r].orEmpty().toSet() }
     }
 
     /**

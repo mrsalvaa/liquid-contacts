@@ -24,6 +24,7 @@ class DuplicatesTest {
         assertEquals(1, g.size)
         assertEquals(listOf(1L, 2L), g[0].contacts.map { it.id })
         assertEquals(setOf(DuplicateReason.SAME_NAME), g[0].reasons)
+        assertEquals(DuplicateConfidence.HIGH, g[0].confidence)
     }
 
     @Test
@@ -31,6 +32,14 @@ class DuplicatesTest {
         val g = d.find(listOf(c(1, "Ana", listOf("011 15 2345-6789")), c(2, "Anita", listOf("+54 9 11 2345 6789"))))
         assertEquals(1, g.size)
         assertEquals(setOf(DuplicateReason.SAME_PHONE), g[0].reasons)
+        assertEquals(DuplicateConfidence.LOW, g[0].confidence)
+    }
+
+    @Test
+    fun mismoNombreYMismoNumeroEsConfianzaAltaYNoSeRepiteEnBaja() {
+        val g = d.find(listOf(c(1, "Ana Torres", listOf("011 4321-0000")), c(2, "ana torres", listOf("+54 11 4321 0000"))))
+        assertEquals(1, g.size)
+        assertEquals(DuplicateConfidence.HIGH, g.single().confidence)
     }
 
     @Test
@@ -49,7 +58,7 @@ class DuplicatesTest {
     }
 
     @Test
-    fun gruposTransitivos() {
+    fun cadenaDentroDeLaConfianzaBaja() {
         val g = d.find(
             listOf(
                 c(1, "Ana Torres", listOf("011 4321-0000")),
@@ -60,6 +69,35 @@ class DuplicatesTest {
         )
         assertEquals(listOf(1L, 2L, 3L), g.single().contacts.map { it.id })
         assertEquals(setOf(DuplicateReason.SAME_PHONE, DuplicateReason.SAME_EMAIL), g.single().reasons)
+        assertEquals(DuplicateConfidence.LOW, g.single().confidence)
+    }
+
+    @Test
+    fun noSeEncadenaEntreConfianzasDistintas() {
+        // A y B se llaman igual; B comparte el número con C (otro nombre).
+        val g = d.find(
+            listOf(
+                c(1, "Ana Torres"),
+                c(2, "Ana Torres", listOf("011 4321-0000")),
+                c(3, "Taller Sur", listOf("+54 11 4321 0000")),
+            ),
+        )
+        assertEquals(2, g.size)
+        val high = g.single { it.confidence == DuplicateConfidence.HIGH }
+        val low = g.single { it.confidence == DuplicateConfidence.LOW }
+        assertEquals(listOf(1L, 2L), high.contacts.map { it.id })
+        assertEquals(listOf(2L, 3L), low.contacts.map { it.id })
+        assertTrue(g.none { it.contacts.size == 3 })
+    }
+
+    @Test
+    fun vistaPreviaSinUnoDelGrupo() {
+        val group = d.find(listOf(c(1, "Ana", listOf("011 4321-0000")), c(2, "ana"), c(3, "ANA", emails = listOf("x@ejemplo.com")))).single()
+        // La interfaz saca al 2 antes de confirmar: la unión solo junta 1 y 3.
+        val m = d.merge(group.contacts.filter { it.id != 2L })
+        assertEquals(1L, m.id)
+        assertEquals(listOf("011 4321-0000"), m.phones.map { it.number })
+        assertEquals(listOf("x@ejemplo.com"), m.emails.map { it.address })
     }
 
     @Test
