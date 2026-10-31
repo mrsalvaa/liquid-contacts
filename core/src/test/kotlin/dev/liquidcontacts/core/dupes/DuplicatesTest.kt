@@ -1,0 +1,114 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+package dev.liquidcontacts.core.dupes
+
+import dev.liquidcontacts.core.model.Contact
+import dev.liquidcontacts.core.model.ContactEvent
+import dev.liquidcontacts.core.model.Email
+import dev.liquidcontacts.core.model.Name
+import dev.liquidcontacts.core.model.Phone
+import dev.liquidcontacts.core.phone.PhoneNumbers
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+
+// Datos inventados.
+class DuplicatesTest {
+    private val d = Duplicates(PhoneNumbers("AR"))
+
+    private fun c(id: Long, name: String, phones: List<String> = emptyList(), emails: List<String> = emptyList()) =
+        Contact(id = id, name = Name(display = name), phones = phones.map { Phone(it) }, emails = emails.map { Email(it) })
+
+    @Test
+    fun mismoNombreSinImportarTildesNiEspacios() {
+        val g = d.find(listOf(c(1, "José  Pérez"), c(2, "jose perez"), c(3, "José Pereira")))
+        assertEquals(1, g.size)
+        assertEquals(listOf(1L, 2L), g[0].contacts.map { it.id })
+        assertEquals(setOf(DuplicateReason.SAME_NAME), g[0].reasons)
+    }
+
+    @Test
+    fun mismoNumeroEnDistintoFormato() {
+        val g = d.find(listOf(c(1, "Ana", listOf("011 15 2345-6789")), c(2, "Anita", listOf("+54 9 11 2345 6789"))))
+        assertEquals(1, g.size)
+        assertEquals(setOf(DuplicateReason.SAME_PHONE), g[0].reasons)
+    }
+
+    @Test
+    fun laCoincidenciaAproximadaNuncaMarcaDuplicados() {
+        // Mismos últimos 8 dígitos, pero uno sin código de área: puede ser otra persona.
+        val g = d.find(listOf(c(1, "Ana", listOf("15 2345-6789")), c(2, "Beto", listOf("+54 9 11 2345 6789"))))
+        assertTrue(g.isEmpty())
+        // Y dos números incompletos iguales tampoco (no hay clave exacta).
+        assertTrue(d.find(listOf(c(1, "Ana", listOf("15 2345-6789")), c(2, "Beto", listOf("15 2345-6789")))).isEmpty())
+    }
+
+    @Test
+    fun mismoEmailSinImportarMayusculas() {
+        val g = d.find(listOf(c(1, "Ana", emails = listOf("Ana@Ejemplo.com ")), c(2, "A. Torres", emails = listOf("ana@ejemplo.com"))))
+        assertEquals(setOf(DuplicateReason.SAME_EMAIL), g.single().reasons)
+    }
+
+    @Test
+    fun gruposTransitivos() {
+        val g = d.find(
+            listOf(
+                c(1, "Ana Torres", listOf("011 4321-0000")),
+                c(2, "Anita", listOf("+54 11 4321 0000"), listOf("ana@ejemplo.com")),
+                c(3, "A. T.", emails = listOf("ANA@ejemplo.com")),
+                c(4, "Otro"),
+            ),
+        )
+        assertEquals(listOf(1L, 2L, 3L), g.single().contacts.map { it.id })
+        assertEquals(setOf(DuplicateReason.SAME_PHONE, DuplicateReason.SAME_EMAIL), g.single().reasons)
+    }
+
+    @Test
+    fun sinNombreNoSonDuplicadosPorNombre() {
+        assertTrue(d.find(listOf(c(1, ""), c(2, " "))).isEmpty())
+    }
+
+    @Test
+    fun unirJuntaTodoSinRepetir() {
+        val a = Contact(
+            id = 1,
+            name = Name(display = "Ana"),
+            phones = listOf(Phone("011 15 2345-6789", primary = true)),
+            emails = listOf(Email("ana@ejemplo.com")),
+            events = listOf(ContactEvent(3, 14)),
+            note = "Vecina",
+            groups = setOf("Familia"),
+        )
+        val b = Contact(
+            id = 2,
+            name = Name(given = "Ana", family = "Torres"),
+            organization = "Taller Sur",
+            phones = listOf(Phone("+54 9 11 2345 6789", primary = true), Phone("011 4321-0000")),
+            emails = listOf(Email("ANA@ejemplo.com"), Email("ana.torres@ejemplo.com")),
+            events = listOf(ContactEvent(3, 14, 1990)),
+            note = "Vecina",
+            groups = setOf("Trabajo"),
+            starred = true,
+            photo = byteArrayOf(1, 2, 3),
+        )
+        val m = d.merge(listOf(a, b))
+        assertEquals(1L, m.id)
+        assertEquals("Ana Torres", m.displayName)
+        assertEquals("Taller Sur", m.organization)
+        assertEquals(listOf("011 15 2345-6789", "011 4321-0000"), m.phones.map { it.number })
+        assertEquals(1, m.phones.count { it.primary })
+        assertEquals(listOf("ana@ejemplo.com", "ana.torres@ejemplo.com"), m.emails.map { it.address })
+        assertEquals(listOf(ContactEvent(3, 14, 1990)), m.events)
+        assertEquals("Vecina", m.note)
+        assertEquals(setOf("Familia", "Trabajo"), m.groups)
+        assertTrue(m.starred)
+        assertTrue(m.photo!!.contentEquals(byteArrayOf(1, 2, 3)))
+    }
+
+    @Test
+    fun eventoInvalidoSeRechaza() {
+        assertTrue(runCatching { ContactEvent(2, 30) }.isFailure)
+        assertTrue(runCatching { ContactEvent(2, 29, 2023) }.isFailure)
+        assertTrue(runCatching { ContactEvent(2, 29) }.isSuccess)
+        assertTrue(runCatching { ContactEvent(2, 29, 2024) }.isSuccess)
+    }
+}
