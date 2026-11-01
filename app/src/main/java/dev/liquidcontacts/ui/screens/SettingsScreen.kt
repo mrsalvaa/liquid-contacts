@@ -45,6 +45,7 @@ import dev.liquidcontacts.core.vcard.VCardImport
 import dev.liquidcontacts.data.Repo
 import dev.liquidcontacts.data.VcfFiles
 import dev.liquidcontacts.data.Stores
+import dev.liquidcontacts.sync.SyncEngine
 import dev.liquidcontacts.ui.components.DangerButton
 import dev.liquidcontacts.ui.glass.DialogSpec
 import dev.liquidcontacts.ui.glass.GlassButton
@@ -65,7 +66,7 @@ import java.util.Locale
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun SettingsScreen(padding: PaddingValues, onBack: () -> Unit, toAreaCode: Boolean = false, onDuplicates: () -> Unit, onImport: (VCardImport.Ok) -> Unit, onExport: () -> Unit) {
+fun SettingsScreen(padding: PaddingValues, onBack: () -> Unit, toAreaCode: Boolean = false, onDuplicates: () -> Unit, onImport: (VCardImport.Ok) -> Unit, onExport: () -> Unit, onServer: () -> Unit) {
     val p = LocalGlass.current
     val context = LocalContext.current
     val dialog = LocalDialog.current
@@ -95,7 +96,7 @@ fun SettingsScreen(padding: PaddingValues, onBack: () -> Unit, toAreaCode: Boole
         withContext(Dispatchers.IO) {
             val loc = Repo.contacts.localAccount()
             local = loc
-            accounts = (listOf(loc) + Repo.contacts.accounts()).distinct()
+            accounts = (listOf(loc) + Repo.allAccounts()).distinct()
         }
     }
 
@@ -172,6 +173,12 @@ fun SettingsScreen(padding: PaddingValues, onBack: () -> Unit, toAreaCode: Boole
                     GlassChip(Labels.account(a, local), selected, { edit { it.copy(newContactAccount = if (a == local) "" else a.id) } })
                 }
             }
+        }
+
+        SectionLabel(str(R.string.server_section))
+        GlassCard {
+            val server by SyncEngine.store.state.collectAsStateWithLifecycle()
+            SettingRow(str(R.string.server_title), subtitle = if (server.configured) server.url else str(R.string.server_none), onClick = onServer)
         }
 
         SectionLabel(str(R.string.tools))

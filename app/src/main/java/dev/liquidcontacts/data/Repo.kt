@@ -6,10 +6,14 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.telephony.TelephonyManager
+import dev.liquidcontacts.R
+import dev.liquidcontacts.contacts.ContactAccount
 import dev.liquidcontacts.contacts.SystemContacts
 import dev.liquidcontacts.core.model.ContactSummary
 import dev.liquidcontacts.core.phone.PhoneNumbers
 import dev.liquidcontacts.core.text.SpanishOrder
+import dev.liquidcontacts.sync.SyncEngine
+import dev.liquidcontacts.sync.SyncScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
@@ -66,6 +70,12 @@ object Repo {
         }
     }
 
+    /** Las cuentas de la agenda, más las libretas del servidor aunque todavía estén vacías. */
+    fun allAccounts(): List<ContactAccount> {
+        val type = app.getString(R.string.account_type)
+        return contacts.accounts(SyncEngine.store.value.books.filter { it.firstSyncDone }.map { ContactAccount(type, it.accountName) })
+    }
+
     fun hasPermission(): Boolean =
         listOf(Manifest.permission.READ_CONTACTS, Manifest.permission.WRITE_CONTACTS)
             .all { app.checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED }
@@ -76,7 +86,11 @@ object Repo {
         if (watching != null || !hasPermission()) return
         watching = scope.launch {
             // Un guardado o una sincronización generan varios avisos seguidos: se lee una vez.
-            contacts.changes().debounce(250).collect { reload() }
+            contacts.changes().debounce(250).collect {
+                reload()
+                // Un cambio hecho acá o en otra app sobre una libreta se sube pronto.
+                if (SyncEngine.hasLocalChanges()) SyncScheduler.syncSoon()
+            }
         }
     }
 

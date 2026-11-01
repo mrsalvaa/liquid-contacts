@@ -126,7 +126,7 @@ fun ContactEditScreen(target: EditTarget, padding: PaddingValues, onBack: () -> 
         withContext(Dispatchers.IO) {
             val loc = Repo.contacts.localAccount()
             local = loc
-            accounts = (listOf(loc) + Repo.contacts.accounts()).distinct()
+            accounts = (listOf(loc) + Repo.allAccounts()).distinct()
             val preferred = Stores.settings.value.newContactAccount.takeIf { it.isNotEmpty() }?.let(ContactAccount::fromId)
             when (target) {
                 is EditTarget.Existing -> Repo.contacts.loadForEdit(target.contactId, preferred, rawChoice)?.let {

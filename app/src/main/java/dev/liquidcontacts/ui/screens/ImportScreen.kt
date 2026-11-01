@@ -96,7 +96,7 @@ fun ImportScreen(data: VCardImport.Ok, padding: PaddingValues, onBack: () -> Uni
         withContext(Dispatchers.IO) {
             val loc = Repo.contacts.localAccount()
             local = loc
-            accounts = (listOf(loc) + Repo.contacts.accounts()).distinct()
+            accounts = (listOf(loc) + Repo.allAccounts()).distinct()
             val preferred = Stores.settings.value.newContactAccount.takeIf { it.isNotEmpty() }?.let(ContactAccount::fromId)
             account = preferred?.takeIf { it in accounts } ?: loc
         }

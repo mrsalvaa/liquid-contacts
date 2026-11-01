@@ -294,8 +294,8 @@ class SystemContacts(private val app: android.content.Context) {
     // ---------------------------------------------------------------- cuentas y etiquetas
 
     /** Cuentas que ya tienen contactos o etiquetas en la agenda (sin pedir GET_ACCOUNTS). */
-    fun accounts(): List<ContactAccount> {
-        val found = LinkedHashSet<ContactAccount>()
+    fun accounts(extra: List<ContactAccount> = emptyList()): List<ContactAccount> {
+        val found = LinkedHashSet<ContactAccount>(extra)
         for (uri in listOf(RawContacts.CONTENT_URI, Groups.CONTENT_URI)) {
             val (typeCol, nameCol) = if (uri == Groups.CONTENT_URI) Groups.ACCOUNT_TYPE to Groups.ACCOUNT_NAME else RawContacts.ACCOUNT_TYPE to RawContacts.ACCOUNT_NAME
             resolver.query(uri, arrayOf(typeCol, nameCol), null, null, null)?.use { c ->
@@ -428,6 +428,27 @@ class SystemContacts(private val app: android.content.Context) {
      * Devuelve el id del contacto.
      */
     fun save(edit: EditableContact, photoChanged: Boolean, sourceId: String? = null): Long {
+        val raw = saveRaw(edit, photoChanged, sourceId, asAdapter = false)
+        val contactId = contactIdOf(raw) ?: error("la ficha no tiene contacto")
+        setStarred(contactId, edit.contact.starred)
+        return contactId
+    }
+
+    /**
+     * Guarda lo que vino de un sincronizador de esa cuenta: la ficha no queda marcada como cambiada
+     * y la foto se reemplaza siempre. Devuelve el id de la ficha.
+     */
+    fun saveAsAdapter(edit: EditableContact): Long = saveRaw(edit, photoChanged = true, sourceId = null, asAdapter = true)
+
+    /** Una ficha tal como está, con su foto (para subirla al servidor). */
+    fun readRawContact(rawId: Long): Contact = readRaw(rawId).copy(photo = readPhoto(rawId))
+
+    private fun saveRaw(edit: EditableContact, photoChanged: Boolean, sourceId: String?, asAdapter: Boolean): Long {
+        fun Uri.w(): Uri = if (!asAdapter) this else buildUpon()
+            .appendQueryParameter(ContactsContract.CALLER_IS_SYNCADAPTER, "true")
+            .appendQueryParameter(RawContacts.ACCOUNT_NAME, edit.account.name)
+            .appendQueryParameter(RawContacts.ACCOUNT_TYPE, edit.account.type)
+            .build()
         val c = edit.contact
         val ops = ArrayList<ContentProviderOperation>()
         val rawId = edit.rawContactId
@@ -436,7 +457,7 @@ class SystemContacts(private val app: android.content.Context) {
         var keepOrganization = false
         var keepNote = false
         if (rawId == null) {
-            ops += ContentProviderOperation.newInsert(RawContacts.CONTENT_URI)
+            ops += ContentProviderOperation.newInsert(RawContacts.CONTENT_URI.w())
                 .withValue(RawContacts.ACCOUNT_TYPE, edit.account.type)
                 .withValue(RawContacts.ACCOUNT_NAME, edit.account.name)
                 .apply { if (sourceId != null) withValue(RawContacts.SOURCE_ID, sourceId) }
@@ -455,7 +476,7 @@ class SystemContacts(private val app: android.content.Context) {
                     !(keepOrganization && t == CommonDataKinds.Organization.CONTENT_ITEM_TYPE) &&
                     !(keepNote && t == CommonDataKinds.Note.CONTENT_ITEM_TYPE)
             } + if (photoChanged) listOf(CommonDataKinds.Photo.CONTENT_ITEM_TYPE) else emptyList()
-            ops += ContentProviderOperation.newDelete(Data.CONTENT_URI)
+            ops += ContentProviderOperation.newDelete(Data.CONTENT_URI.w())
                 .withSelection(
                     "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} IN (${replaced.joinToString(",") { "?" }})",
                     (listOf(rawId.toString()) + replaced).toTypedArray(),
@@ -463,7 +484,7 @@ class SystemContacts(private val app: android.content.Context) {
             // De las etiquetas, solo las del usuario: la pertenencia a grupos del sistema no se toca.
             val editable = editableGroupIds(edit.account)
             if (editable.isNotEmpty()) {
-                ops += ContentProviderOperation.newDelete(Data.CONTENT_URI)
+                ops += ContentProviderOperation.newDelete(Data.CONTENT_URI.w())
                     .withSelection(
                         "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} = ? AND ${CommonDataKinds.GroupMembership.GROUP_ROW_ID} IN (${editable.joinToString(",")})",
                         arrayOf(rawId.toString(), CommonDataKinds.GroupMembership.CONTENT_ITEM_TYPE),
@@ -472,7 +493,7 @@ class SystemContacts(private val app: android.content.Context) {
             rawRef = { it.withValue(Data.RAW_CONTACT_ID, rawId) }
         }
         fun row(mime: String, vararg values: Pair<String, Any?>) {
-            val b = rawRef(ContentProviderOperation.newInsert(Data.CONTENT_URI)).withValue(Data.MIMETYPE, mime)
+            val b = rawRef(ContentProviderOperation.newInsert(Data.CONTENT_URI.w())).withValue(Data.MIMETYPE, mime)
             for ((k, v) in values) b.withValue(k, v)
             ops += b.build()
         }
@@ -552,15 +573,11 @@ class SystemContacts(private val app: android.content.Context) {
 
         val results = resolver.applyBatch(ContactsContract.AUTHORITY, ops)
         val savedRaw = rawId ?: ContentUris.parseId(results[0].uri!!)
-        if (photoChanged && c.photo != null) writeDisplayPhoto(savedRaw, c.photo!!)
-        val contactId = contactIdOf(savedRaw) ?: error("la ficha no tiene contacto")
-        setStarred(contactId, c.starred)
-        return contactId
-    }
-
-    private fun writeDisplayPhoto(rawId: Long, bytes: ByteArray) {
-        val uri = Uri.withAppendedPath(ContentUris.withAppendedId(RawContacts.CONTENT_URI, rawId), RawContacts.DisplayPhoto.CONTENT_DIRECTORY)
-        runCatching { resolver.openAssetFileDescriptor(uri, "rw")?.use { fd -> fd.createOutputStream().use { it.write(bytes) } } }
+        if (photoChanged && c.photo != null) {
+            val uri = Uri.withAppendedPath(ContentUris.withAppendedId(RawContacts.CONTENT_URI, savedRaw), RawContacts.DisplayPhoto.CONTENT_DIRECTORY).w()
+            runCatching { resolver.openAssetFileDescriptor(uri, "rw")?.use { fd -> fd.createOutputStream().use { it.write(c.photo!!) } } }
+        }
+        return savedRaw
     }
 
     fun contactIdOf(rawId: Long): Long? =

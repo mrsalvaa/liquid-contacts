@@ -11,6 +11,20 @@
     <uses-permission android:name="android.permission.WRITE_CONTACTS" />
 
     <!--
+        Solo para el servidor CardDAV que se configure. Sin servidor no se hace ninguna conexión.
+    -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!--
+        WorkManager agrega WAKE_LOCK, ACCESS_NETWORK_STATE y RECEIVE_BOOT_COMPLETED (sincronizar
+        solo con red y seguir después de reiniciar). FOREGROUND_SERVICE no hace falta: la app nunca
+        usa servicios en primer plano, así que se quita junto con ese servicio.
+    -->
+    <uses-permission
+        android:name="android.permission.FOREGROUND_SERVICE"
+        tools:node="remove" />
+
+    <!--
         Fuera lo que agregan las librerías y la app no usa, para que el manifest final solo tenga
         componentes propios:
         - el permiso interno de androidx.core para receptores dinámicos (no registramos ninguno);
@@ -30,6 +44,7 @@
         android:name=".ContactsApp"
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -131,6 +146,43 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/shared_files" />
         </provider>
+
+        <!-- WorkManager sin servicio en primer plano. -->
+        <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            tools:ignore="MissingClass"
+            tools:node="remove" />
+
+        <!--
+            La cuenta de cada libreta y el sincronizador. Exportados porque los enlaza el sistema,
+            protegidos para que solo él pueda hacerlo.
+        -->
+        <service
+            android:name=".sync.AuthenticatorService"
+            android:exported="true"
+            android:permission="android.permission.ACCOUNT_MANAGER">
+            <intent-filter>
+                <action android:name="android.accounts.AccountAuthenticator" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accounts.AccountAuthenticator"
+                android:resource="@xml/authenticator" />
+        </service>
+        <service
+            android:name=".sync.ContactsSyncService"
+            android:exported="true"
+            android:permission="android.permission.BIND_SYNC_ADAPTER"
+            tools:ignore="ProtectedPermissions">
+            <intent-filter>
+                <action android:name="android.content.SyncAdapter" />
+            </intent-filter>
+            <meta-data
+                android:name="android.content.SyncAdapter"
+                android:resource="@xml/sync_contacts" />
+            <meta-data
+                android:name="android.provider.CONTACTS_STRUCTURE"
+                android:resource="@xml/contacts" />
+        </service>
 
         <!-- Un alias por ícono de la app: solo uno está activo (ver util/AppIcons.kt). -->
         <activity-alias

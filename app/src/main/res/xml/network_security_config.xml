@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!--
+    Solo las autoridades del sistema: un certificado instalado por el usuario o por una app de
+    inspección de tráfico no sirve para hacerse pasar por el servidor (una CA propia se importa
+    en la app y vale solo para esa cuenta).
+
+    cleartextTrafficPermitted: esta configuración no puede expresar "cualquier IP privada", así que
+    la regla está en el código: http solo si el usuario lo activó y solo hacia una dirección de red
+    local o VPN (ServerUrl y LocalOnlyDns). Es la única conexión que hace la app.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

@@ -28,6 +28,7 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
+        resValue("string", "account_type", "dev.liquidcontacts.carddav")
     }
 
     signingConfigs {
@@ -45,6 +46,7 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
+            resValue("string", "account_type", "dev.liquidcontacts.debug.carddav")
         }
         release {
             isMinifyEnabled = true
@@ -61,6 +63,7 @@ android {
             initWith(getByName("release"))
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-profile"
+            resValue("string", "account_type", "dev.liquidcontacts.debug.carddav")
             signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += listOf("release")
         }
@@ -117,6 +120,7 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.backdrop)
+    implementation(libs.work.runtime)
 
     testImplementation(libs.kotlin.test)
 }

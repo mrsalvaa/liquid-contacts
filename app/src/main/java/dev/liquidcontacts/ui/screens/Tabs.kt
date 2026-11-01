@@ -47,6 +47,7 @@ import dev.liquidcontacts.core.text.SpanishOrder
 import dev.liquidcontacts.data.Repo
 import dev.liquidcontacts.data.Row
 import dev.liquidcontacts.data.Stores
+import dev.liquidcontacts.sync.SyncEngine
 import dev.liquidcontacts.ui.components.DangerButton
 import dev.liquidcontacts.ui.components.dangerText
 import dev.liquidcontacts.ui.components.AlphabetIndex
@@ -79,6 +80,7 @@ class TabContext(
     val onSettings: () -> Unit,
     val onAreaCode: () -> Unit,
     val onLabel: (ContactGroup) -> Unit,
+    val onServer: () -> Unit,
 )
 
 // ---------------------------------------------------------------- permiso
@@ -155,13 +157,16 @@ fun ContactsTab(ctx: TabContext) {
         }
     }
     val showNotice = missingArea > 0 && !settings.areaCodeNoticeDismissed && query.isBlank()
+    val server by SyncEngine.store.state.collectAsStateWithLifecycle()
+    var syncNoticeHidden by rememberSaveable { mutableStateOf(false) }
+    val showSyncNotice = server.needsAttention && !syncNoticeHidden && query.isBlank()
 
     Box(Modifier.fillMaxSize()) {
         // Índice de la lista: posición de la primera fila de cada letra (con sus encabezados y el aviso).
         val shown = results ?: book.rows
-        val firstOf = remember(shown, results, showNotice) {
+        val firstOf = remember(shown, results, showNotice, showSyncNotice) {
             val map = HashMap<String, Int>()
-            var i = 2 + (if (showNotice) 1 else 0)
+            var i = 2 + (if (showNotice) 1 else 0) + (if (showSyncNotice) 1 else 0)
             var last: String? = null
             for (r in shown) {
                 if (results == null && r.section != last) {
@@ -202,6 +207,18 @@ fun ContactsTab(ctx: TabContext) {
                         ctx.onAreaCode,
                         str(R.string.dismiss),
                         { Stores.settings.update { it.copy(areaCodeNoticeDismissed = true) } },
+                        Modifier.padding(vertical = 6.dp),
+                    )
+                }
+            }
+            if (server.needsAttention && !syncNoticeHidden && query.isBlank()) {
+                item(key = "sync-notice") {
+                    NoticeCard(
+                        str(if (server.needsPassword) R.string.server_needs_password else R.string.server_attention),
+                        str(R.string.server_attention_action),
+                        ctx.onServer,
+                        str(R.string.dismiss),
+                        { syncNoticeHidden = true },
                         Modifier.padding(vertical = 6.dp),
                     )
                 }
