@@ -87,6 +87,11 @@ android {
         disable += setOf("GradleDependency", "NewerVersionAvailable", "AndroidGradlePluginVersion", "OldTargetApi")
     }
 
+    // De ez-vcard solo se usa el formato de texto: fuera la plantilla y las imágenes de hCard.
+    packaging {
+        resources.excludes += "ezvcard/io/html/**"
+    }
+
     // F-Droid: sin el bloque de dependencias firmado por Google dentro del APK.
     dependenciesInfo {
         includeInApk = false

@@ -1,8 +1,8 @@
-# Diseño: qué reutiliza Liquid Contacts de la suite
+# Diseño: Liquid Contacts dentro de la suite
 
 SPDX-License-Identifier: GPL-3.0-or-later
 
-> Borrador del paso 2: se completa en el paso 4 (ajustes y documentación).
+Qué reutiliza esta app, qué escribió para sí, y qué conviene saber antes de hacer phone y messages.
 
 ## Origen de `ui/glass`
 
@@ -13,29 +13,93 @@ el encabezado SPDX. De ese mismo commit salen `ui/screens/AppearanceCard.kt`,
 `ui/screens/Common.kt`, `util/AppIcons.kt`, `util/Strings.kt`, `util/Display.kt`,
 `data/Stores.kt` y los textos de `res/values*/strings_glass.xml`.
 
-## Componentes propios (`ui/components/ContactComponents.kt`)
+Colores, formas, blur y animaciones están descritos en el `DESIGN.md` de Liquid Calc.
 
-Escritos en el estilo de `ui/glass`, para copiar a phone y messages:
+## Ajustes
 
-| Componente | Qué es |
-|---|---|
-| `ContactAvatar` | Foto o iniciales sobre uno de los 9 tonos de énfasis apagados (`avatarColor`), siempre el mismo para el mismo nombre (`core/avatar/Avatars`). |
-| `ContactRow` | Fila **plana** (sin cristal propio), 64 dp de alto mínimo, toda la fila es el botón. |
-| `LetterHeader` | Letra de cada grupo, encabezado para TalkBack. |
-| `AlphabetIndex` | Índice lateral: tocar o arrastrar salta a la letra, con burbuja de cristal siempre armada (solo cambia su opacidad). Si no entran todas las letras, muestra algunas con puntos. |
-| `SearchField` | Píldora de cristal con lupa y botón de borrar de 48 dp. |
-| `NoticeCard` | Aviso discreto dentro de la lista, con acción y cruz para descartar. |
-| `UndoHost` | Píldora de cristal con "Deshacer" (`LocalUndo`). Dura 10 s o lo que pida la accesibilidad del sistema. |
-| `SwitchRow` | Fila con interruptor que TalkBack lee como una sola cosa, diciendo qué activa. |
+`data/AppSettings.kt` guarda en `files/settings.json` los 8 campos de personalización de la suite,
+con los mismos nombres, valores y valores por defecto que Calendar: `themeMode`, `backgroundMode`,
+`colorSet`, `accentColor`, `animatedBackground`, `uiStyle`, `solidAccent`, `appIcon`. Los propios
+de Contactos van aparte: `defaultCountry`, `defaultAreaCode`, `areaCodeNoticeDismissed`,
+`newContactAccount`.
 
-Regla de las listas largas: filas planas y cristal solo en contenedores (barra, búsqueda, avisos,
-diálogos). Medido en un Samsung a 120 Hz con 520 contactos inventados: de 1,1 a 2,5 % de cuadros
-con tirones al desplazar, según el fondo, sin los modos livianos de Calc.
+Íconos: los 5 estilos en el orden de siempre (Liquid por defecto, Material, Samsung, iPhone,
+Motorola) más monocromo. Los fondos son los de Calendar; el dibujo es una silueta de persona.
+
+## Componentes propios
+
+Todos en `ui/components/ContactComponents.kt`, escritos en el estilo de `ui/glass`. Para copiarlos
+hace falta `ui/glass` y `core/avatar/Avatars.kt` (que usa `Fold`, de `core/text/ContactText.kt`).
+
+| Componente | Uso | Notas |
+|---|---|---|
+| `ContactAvatar(name, modifier, size, photoUri, photo)` | Foto o iniciales | Color de `avatarColor`: 9 tonos de énfasis apagados (sin el gris), siempre el mismo para el mismo nombre. Miniaturas en caché LRU de 8 MB. Decorativo para TalkBack: el nombre lo dice la fila. |
+| `ContactRow(name, onClick, modifier, subtitle, photoUri, starred, starredLabel, trailing)` | Fila de lista | **Plana**, sin cristal. 64 dp de alto mínimo; toda la fila es el botón; TalkBack lee nombre, dato y favorito. |
+| `LetterHeader(letter)` | Letra de cada grupo | Encabezado para TalkBack. |
+| `AlphabetIndex(letters, available, onLetter, modifier, jumpLabel)` | Índice lateral | Tocar o arrastrar salta a la letra. Si no entran todas (22 dp cada una), muestra algunas con puntos; al arrastrar se recorren todas. Con TalkBack, cada letra con contactos es un botón. Usar con `SpanishOrder.SECTIONS`. |
+| `SearchField(value, onValueChange, placeholder, clearLabel, modifier, focusRequester)` | Búsqueda | Píldora de cristal con lupa y botón de borrar de 48 dp. Usar con `ContactSearch(query, numbers::searchForms)`. |
+| `NoticeCard(text, action, onAction, dismissLabel, onDismiss, modifier)` | Aviso discreto en una lista | No es un diálogo. Toda la tarjeta lleva a la acción; la cruz lo descarta. |
+| `UndoHost(spec, onDone)`, `LocalUndo`, `UndoSpec` | Barra de Deshacer | Dura 10 s o lo que pida "Tiempo para actuar" del sistema. Va en la capa flotante de `GlassRoot`. |
+| `SwitchRow(title, checked, onChange, modifier, subtitle)` | Fila con interruptor | TalkBack la lee como una sola cosa, diciendo qué activa. Usar en vez de `SettingRow` + `GlassSwitch`. |
+| `DangerButton(text, onClick, modifier, icon, enabled)` | Acción destructiva | Ver la excepción de abajo. |
+
+**Listas largas:** filas planas y cristal solo en contenedores (barra, búsqueda, avisos, diálogos).
+Medido en un Samsung a 120 Hz con 520 contactos inventados, con la versión optimizada: de 1,1 a
+2,5 % de cuadros con tirones al desplazar, según el fondo, y de 0,6 a 1,9 % en el índice lateral.
+No hicieron falta los modos livianos de Calc.
+
+La burbuja del índice queda siempre armada y solo cambia su opacidad: crear una superficie de
+cristal en cada toque daba 10 % de tirones y picos de 36 ms.
+
+## Excepción local: el rojo de las acciones destructivas
+
+`GlassButton(danger = true)` de `ui/glass` usa `danger` translúcido con texto blanco, con poco
+contraste en tema claro. Sin tocar `ui/glass`, Contactos usa `DangerButton` con `DangerFill`
+(`#9F1818`, opaco) en todos sus botones destructivos, y `dangerText` (`#B3261E` en claro) para el
+texto de error. Los menús no usan `SheetAction(danger = true)`, cuyo texto `#E5484D` tampoco llega en
+claro: el botón rojo está en el diálogo que sigue.
+
+Contraste de texto blanco contra el píxel más claro del fondo del botón, medido sobre capturas del
+emulador en los 4 fondos o estilos × claro y oscuro, en la pantalla y en el diálogo: **peor caso
+5,37:1** (brillo superior en claro con fondo liso o de énfasis), el resto entre 7,35:1 y 8,02:1.
+
+**Pendiente en Calendar:** tiene el mismo `danger` translúcido y hay que corregirlo allá.
 
 ## Accesibilidad: lo que viene de `ui/glass`
 
-Recorrido con TalkBack en el emulador. Dos cosas salen de los componentes copiados de Calendar y
-no se cambiaron para no tocar sus tokens: `GlassChip` mide 40 dp visibles (Compose extiende su zona
-táctil a 48 dp) y `GlassButton(danger = true)` lleva texto blanco sobre rojo translúcido, con
-contraste bajo en tema claro. Un `GlassTextField` con texto no puede fundir su rótulo: el rótulo y
-el valor son dos paradas de TalkBack.
+- `GlassChip` mide 40 dp visibles, pero su zona táctil real es de **48,0 dp**: en un chip con el nodo
+  en y=475..600, tocar responde de y=475 a y=600 y no en 474 ni 601 (126 px a 2,625 de densidad).
+  Es la extensión automática de Compose; no hizo falta ampliar nada. Si hay otro elemento pegado,
+  esa extensión se reparte: dejar 8 dp entre chips.
+- Un `GlassTextField` con texto no puede fundir su rótulo sin tocar `ui/glass`: rótulo y valor son
+  dos paradas de TalkBack. Vacío, la ayuda ya es el nombre y es una sola parada.
+
+## Lecciones para las próximas apps
+
+Errores que aparecieron acá, con su solución. Varios venían de código copiado o se verían igual en
+phone y messages.
+
+| Problema | Por qué pasaba | Solución |
+|---|---|---|
+| **Teclado y formularios:** con un campo enfocado, el formulario quedaba aplastado. | `WindowInsets.safeDrawing` ya incluye el teclado; sumar `imePadding()` lo descuenta dos veces. | Usar solo el relleno de `safeDrawing`. Revisar en Calendar: `EventEditScreen`, `AccountScreen` y `CalendarManage` usan `imePadding`. |
+| **Teclado al salir de una lista:** quedaba abierto, con el cursor flotando sobre la pantalla siguiente. | Las pestañas siguen creadas debajo y el campo no pierde el foco. | `LocalFocusManager.clearFocus()` antes de navegar. |
+| **Ruedas de fecha:** escribir "5" en el día ponía 6; escribir un año no hacía nada. | El número escrito se tomaba como posición de la rueda. Es el mismo error que tuvieron los minutos de Calendar. | Pasar `typed` a `WheelPicker` en toda rueda cuya etiqueta no sea su posición. |
+| **Grupos del sistema al guardar:** se perdía "Mis contactos" de Google. | Reescribir las etiquetas borraba todas las pertenencias a grupos. | Borrar solo las de grupos editables (`SYSTEM_ID` nulo, no solo lectura, no `AUTO_ADD`). |
+| **Datos que la app no muestra:** se perdía un segundo apodo o el departamento de la empresa. | Guardar borra y reescribe los tipos que maneja la app. | Apodo, empresa y nota solo se reescriben si cambiaron. Tipos ajenos nunca se tocan. |
+| **Unir no borraba:** la ficha "borrada" seguía oculta dentro del contacto unido. | Al quedar con el mismo nombre y número, Android junta las fichas y el id de contacto viejo deja de existir, así que borrar por ese id no hace nada. | Borrar por **ficha**, con los ids tomados antes de escribir. Verificar en la base, no en la pantalla: la pantalla mostraba el resultado correcto. |
+| **Fotos al unir:** se perdía la foto si solo la tenía el segundo contacto. | `load()` no lee fotos, así que la vista previa no la tenía. | `loadFull()` para vistas previas y respaldos, y volver a tomarla de los originales al unir. |
+| **Foto grande:** puede romper el guardado. | Un blob grande no entra en una transacción de la agenda. | Validar que sea una imagen y achicarla a 720 px en JPEG antes de guardar (`VcfFiles.normalizePhoto`). |
+| **Nombres para TalkBack:** botones sin nombre, interruptores que no decían qué activan, letras del índice anunciadas como botón que no hacían nada, campos con texto sin decir qué campo son. | Con `null` de descripción o controles sueltos, TalkBack no tiene qué decir; `role = Button` no agrega la acción. | `SwitchRow`; nombre en cada ícono o `clearAndSetSemantics` si la fila ya es el botón; `onClick` en la semántica; `contentDescription` en campos con texto. |
+| **vCard en Android 12:** todos los archivos habrían dado "inválido". | `InputStream.readNBytes` existe recién desde la API 33, y el error quedaba atrapado por el manejo de fallas. | Lectura manual con un tope. Correr `lintDebug` siempre: lo detectó él, ninguna prueba en Android 15 lo hubiera visto. |
+| **Texto de `.vcf` viejos:** "Muñoz" salía roto. | ez-vcard lee UTF-8 y su `CHARSET` solo aplica a quoted-printable. | Si no es UTF-8 válido, leer como Windows-1252 (`VCards.decode`). |
+| **Clases faltantes de ez-vcard:** `NoClassDefFoundError` de FreeMarker. | La clase `VCard` lo menciona y la JVM lo exige al cargarla. | `testRuntimeOnly` de FreeMarker y `-dontwarn` en R8; usar `VCardWriter` directo en vez de la fachada `Ezvcard`. |
+| **Aviso "directo al ajuste":** no se movía. | Se pedía traer a la vista el título, que ya estaba visible. | `BringIntoViewRequester` sobre el campo mismo. |
+| **Datos de prueba mezclados:** un contacto de prueba puede juntarse con uno real. | Android agrega fichas por nombre y número. | Marcar la ficha al crearla (`SOURCE_ID`) y borrar por esa marca, nunca por nombre, etiqueta ni contacto. |
+
+### Para probar
+
+- Nunca capturas ni pruebas que escriban en un celu real: emulador con datos inventados.
+- `adb input` no le llega a TalkBack. Los toques de `adb emu event mouse x y 0 1|0` sí, y con ellos funciona deslizar para recorrer y el doble toque.
+- Una imagen `default` del emulador no trae TalkBack; `google_apis_playstore` sí.
+- En `uiautomator dump`, un chip elegido aparece como `checked`, no `selected`, y `bounds` puede incluir la zona táctil extendida de Compose: para saber la real, tocar y ver hasta dónde responde.
+- Para probar lo que devuelve "elegir", hace falta otra app sin permiso de contactos: desde la misma app no se ve nada.
