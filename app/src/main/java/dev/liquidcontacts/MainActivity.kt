@@ -140,16 +140,27 @@ class MainActivity : ComponentActivity() {
             val settings by Stores.settings.state.collectAsStateWithLifecycle()
             SystemBarsFor(isDarkTheme(settings.themeMode))
             GlassTheme(settings.glassStyle) {
-                App(settings.animatedBackground, flatNav = settings.uiStyle == 1)
+                ContactsUi(settings.animatedBackground, flatNav = settings.uiStyle == 1)
             }
         }
     }
 }
 
+/**
+ * Toda la app. Desde otra app ([ExternalActivity]), [external] dice qué pantalla abrir (se resuelve
+ * después de tener el permiso; null = el pedido no vale) y [onExit] termina cuando se cierra: sin
+ * pestañas ni nada más de la agenda a la vista.
+ */
 @Composable
-private fun App(animated: Boolean, flatNav: Boolean) {
+fun ContactsUi(
+    animated: Boolean,
+    flatNav: Boolean,
+    external: (suspend () -> Overlay?)? = null,
+    onExit: (savedContact: Long?) -> Unit = {},
+) {
     var granted by remember { mutableStateOf(Repo.hasPermission()) }
     LaunchedEffect(granted) { if (granted) Repo.start() }
+    val isExternal = external != null
 
     var tab by rememberSaveable { mutableIntStateOf(TAB_CONTACTS) }
     var tabDrag by remember { mutableStateOf<Float?>(null) }
@@ -172,7 +183,21 @@ private fun App(animated: Boolean, flatNav: Boolean) {
         holder.removeState(key)
     }
     BackHandler(enabled = stack.isNotEmpty() && sheet == null && prompt == null && dialog == null) { pop() }
-    BackHandler(enabled = stack.isEmpty() && tab != TAB_CONTACTS) { tab = TAB_CONTACTS }
+    BackHandler(enabled = !isExternal && stack.isEmpty() && tab != TAB_CONTACTS) { tab = TAB_CONTACTS }
+    if (external != null) {
+        var opened by remember { mutableStateOf(false) }
+        LaunchedEffect(granted) {
+            if (granted && !opened) {
+                val first = external()
+                if (first == null) onExit(null) else {
+                    push(first)
+                    opened = true
+                }
+            }
+        }
+        // Se cerró lo último que había abierto: se vuelve a la otra app.
+        LaunchedEffect(opened, stack.size) { if (opened && stack.isEmpty()) onExit(null) }
+    }
 
     val insets = WindowInsets.safeDrawing.asPaddingValues()
     val dir = LocalLayoutDirection.current
@@ -208,7 +233,7 @@ private fun App(animated: Boolean, flatNav: Boolean) {
         GlassRoot(
             animated = animated,
             floating = {
-                if (granted) {
+                if (granted && !isExternal) {
                     AnimatedVisibility(
                         stack.isEmpty(),
                         modifier = Modifier.align(Alignment.BottomCenter),
@@ -253,6 +278,7 @@ private fun App(animated: Boolean, flatNav: Boolean) {
                 return@GlassRoot
             }
             val top = stack.lastOrNull()
+            // Desde otra app no se muestra la agenda: solo lo que pidió.
             val tabsAlpha by animateFloatAsState(
                 if (top == null) 1f else 0f,
                 tween(if (reduced) 0 else if (top == null) 220 else 120),
@@ -265,11 +291,13 @@ private fun App(animated: Boolean, flatNav: Boolean) {
                     .drawWithContent { if (tabsAlpha > 0.01f) drawContent() }
                     .then(if (top != null) Modifier.clearAndSetSemantics { }.pointerInput(Unit) { swallowTouches() } else Modifier),
             ) {
-                SwipeTabs(tab, onScreen = top == null, onTab = { tab = it }, onDrag = { tabDrag = it }) { t ->
-                    when (t) {
-                        TAB_CONTACTS -> ContactsTab(tabContext)
-                        TAB_FAVORITES -> FavoritesTab(tabContext)
-                        else -> LabelsTab(tabContext)
+                if (!isExternal) {
+                    SwipeTabs(tab, onScreen = top == null, onTab = { tab = it }, onDrag = { tabDrag = it }) { t ->
+                        when (t) {
+                            TAB_CONTACTS -> ContactsTab(tabContext)
+                            TAB_FAVORITES -> FavoritesTab(tabContext)
+                            else -> LabelsTab(tabContext)
+                        }
                     }
                 }
             }
@@ -298,6 +326,11 @@ private fun App(animated: Boolean, flatNav: Boolean) {
                         Overlay.Export -> ExportScreen(overlayPadding, ::pop)
                         is Overlay.Detail -> ContactDetailScreen(current.contactId, overlayPadding, ::pop, onEdit = { push(Overlay.Edit(EditTarget.Existing(current.contactId))) })
                         is Overlay.Edit -> ContactEditScreen(current.target, overlayPadding, ::pop, onSaved = { id ->
+                            // Si lo pidió otra app, se le devuelve el contacto guardado y se cierra.
+                            if (isExternal && stack.size == 1) {
+                                onExit(id)
+                                return@ContactEditScreen
+                            }
                             pop()
                             // Un contacto nuevo se abre al guardarlo; uno editado vuelve a su detalle.
                             if (current.target is EditTarget.New && id != null) push(Overlay.Detail(id))

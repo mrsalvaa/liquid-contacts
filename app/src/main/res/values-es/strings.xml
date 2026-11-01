@@ -201,6 +201,12 @@
     <string name="export_save">Guardar en un archivo</string>
     <string name="export_pick">Elegir contactos</string>
     <string name="export_failed">No se pudo crear el archivo</string>
+    <string name="pick_contact">Elegí un contacto</string>
+    <string name="pick_phone">Elegí un número</string>
+    <string name="pick_email">Elegí un email</string>
+    <string name="pick_postal">Elegí una dirección</string>
+    <string name="pick_note">Solo lo que elijas va a la app que lo pidió: no ve el resto de tu agenda.</string>
+    <string name="external_invalid">No se pudo abrir ese pedido</string>
     <plurals name="contacts_count">
         <item quantity="one">%d contacto</item>
         <item quantity="many">%d contactos</item>

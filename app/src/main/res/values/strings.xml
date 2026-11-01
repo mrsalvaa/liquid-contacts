@@ -201,6 +201,12 @@
     <string name="export_save">Save to a file</string>
     <string name="export_pick">Choose contacts</string>
     <string name="export_failed">Could not create the file</string>
+    <string name="pick_contact">Choose a contact</string>
+    <string name="pick_phone">Choose a number</string>
+    <string name="pick_email">Choose an email</string>
+    <string name="pick_postal">Choose an address</string>
+    <string name="pick_note">Only what you choose goes to the app that asked: it does not see the rest of your contacts.</string>
+    <string name="external_invalid">That request could not be opened</string>
     <plurals name="contacts_count">
         <item quantity="one">%d contact</item>
         <item quantity="other">%d contacts</item>

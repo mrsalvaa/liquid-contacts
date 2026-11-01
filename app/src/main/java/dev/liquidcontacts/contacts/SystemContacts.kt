@@ -113,6 +113,20 @@ class SystemContacts(private val app: android.content.Context) {
         return out
     }
 
+    fun exists(contactId: Long): Boolean =
+        resolver.query(ContentUris.withAppendedId(Contacts.CONTENT_URI, contactId), arrayOf(Contacts._ID), null, null, null)?.use { it.moveToFirst() } == true
+
+    /** La URI estable de un contacto (la que se devuelve a otras apps). */
+    fun lookupUri(contactId: Long): Uri? = Contacts.getLookupUri(resolver, ContentUris.withAppendedId(Contacts.CONTENT_URI, contactId))
+
+    /**
+     * Los números (o emails, o direcciones) de un contacto, con su fila: [content] es la URI base
+     * del tipo (Phone.CONTENT_URI...), y la fila de datos se devuelve a la app que pidió elegir.
+     */
+    fun dataRows(contactId: Long, content: Uri, column: String): List<Pair<Long, String>> =
+        resolver.query(content, arrayOf(Data._ID, column), "${Data.CONTACT_ID} = ?", arrayOf(contactId.toString()), null)
+            ?.use { c -> buildList { while (c.moveToNext()) c.getString(1)?.takeIf { it.isNotBlank() }?.let { add(c.getLong(0) to it) } } }.orEmpty()
+
     /** Id actual de un contacto por su lookup key (cambia si Android lo une o separa), o null. */
     fun resolve(lookupKey: String): Long? {
         val uri = Contacts.lookupContact(resolver, Uri.withAppendedPath(Contacts.CONTENT_LOOKUP_URI, lookupKey)) ?: return null

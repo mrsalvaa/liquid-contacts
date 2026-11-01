@@ -53,6 +53,72 @@
             tools:node="remove" />
 
         <!--
+            Pedidos de otras apps, tratados como entrada no confiable (ver external/). Son las únicas
+            actividades exportadas además de los íconos del launcher, y solo abren lo pedido:
+            insertar y editar rellenan un formulario que guarda el usuario; elegir devuelve solo lo
+            elegido, con un permiso temporal.
+        -->
+        <activity
+            android:name=".ExternalActivity"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="vnd.android.cursor.item/contact" />
+                <data android:mimeType="vnd.android.cursor.item/raw_contact" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/x-vcard" />
+                <data android:mimeType="text/vcard" />
+                <data android:mimeType="text/directory" />
+                <data android:scheme="content" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.EDIT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="vnd.android.cursor.item/contact" />
+                <data android:mimeType="vnd.android.cursor.item/raw_contact" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.INSERT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="vnd.android.cursor.dir/contact" />
+                <data android:mimeType="vnd.android.cursor.dir/raw_contact" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.INSERT_OR_EDIT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="vnd.android.cursor.item/contact" />
+                <data android:mimeType="vnd.android.cursor.item/raw_contact" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".PickActivity"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.PICK" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="vnd.android.cursor.dir/contact" />
+                <data android:mimeType="vnd.android.cursor.dir/phone_v2" />
+                <data android:mimeType="vnd.android.cursor.dir/email_v2" />
+                <data android:mimeType="vnd.android.cursor.dir/postal-address_v2" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.GET_CONTENT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="vnd.android.cursor.item/contact" />
+                <data android:mimeType="vnd.android.cursor.item/phone_v2" />
+                <data android:mimeType="vnd.android.cursor.item/email_v2" />
+                <data android:mimeType="vnd.android.cursor.item/postal-address_v2" />
+            </intent-filter>
+        </activity>
+
+        <!--
             Para compartir un .vcf temporal: sin exportar y solo con permisos por URI, temporales,
             sobre la carpeta de res/xml/shared_files.xml.
         -->
