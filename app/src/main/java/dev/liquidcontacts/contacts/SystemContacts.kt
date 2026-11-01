@@ -649,6 +649,11 @@ class SystemContacts(private val app: android.content.Context) {
         resolver.delete(ContentUris.withAppendedId(RawContacts.CONTENT_URI, rawId), null, null)
     }
 
+    /** Devuelve fichas a una copia tomada con [loadForEdit] antes de cambiarlas. */
+    fun restore(snapshots: List<EditableContact>) {
+        snapshots.forEach { save(it, photoChanged = true) }
+    }
+
     // ---------------------------------------------------------------- cambios
 
     /** Emite cada vez que cambia algo en la agenda (de esta app o de cualquier otra). */

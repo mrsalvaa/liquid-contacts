@@ -55,6 +55,7 @@ import dev.liquidcontacts.core.text.Clean
 import dev.liquidcontacts.core.vcard.VCardFormat
 import dev.liquidcontacts.data.Repo
 import dev.liquidcontacts.data.VcfFiles
+import dev.liquidcontacts.ui.components.DangerButton
 import dev.liquidcontacts.ui.components.ContactAvatar
 import dev.liquidcontacts.ui.components.SwitchRow
 import dev.liquidcontacts.ui.glass.DialogSpec
@@ -211,18 +212,18 @@ fun ContactDetailScreen(contactId: Long, padding: PaddingValues, onBack: () -> U
         }
 
         Spacer(Modifier.height(24.dp))
-        GlassButton(
+        DangerButton(
             str(R.string.delete_contact),
             {
                 dialog(
                     DialogSpec(str(R.string.delete_contact_title, c.displayName.ifBlank { str(R.string.no_name) })) { dismiss ->
                         Text(str(R.string.delete_contact_text), fontSize = 15.sp, color = p.contentSecondary)
                         Spacer(Modifier.height(16.dp))
-                        GlassButton(str(R.string.delete), {
+                        DangerButton(str(R.string.delete), {
                             dismiss()
                             Repo.launch { Repo.contacts.delete(contactId) }
                             onBack()
-                        }, Modifier.fillMaxWidth(), danger = true)
+                        }, Modifier.fillMaxWidth())
                         Spacer(Modifier.height(8.dp))
                         GlassButton(str(R.string.cancel), dismiss, Modifier.fillMaxWidth())
                     },
@@ -230,7 +231,6 @@ fun ContactDetailScreen(contactId: Long, padding: PaddingValues, onBack: () -> U
             },
             Modifier.fillMaxWidth(),
             icon = Icons.Rounded.DeleteOutline,
-            danger = true,
         )
         Spacer(Modifier.height(24.dp))
     }

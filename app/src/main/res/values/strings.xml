@@ -176,7 +176,7 @@
     <string name="import_button">Import</string>
     <string name="import_summary">New: %1$d · Merge: %2$d · Skip: %3$d</string>
     <string name="import_confirm_title">Import these contacts?</string>
-    <string name="import_confirm_text">%1$d are created in %2$s, %3$d are merged with contacts you already have (their data is added, with no undo) and %4$d are skipped.</string>
+    <string name="import_confirm_text">%1$d are created in %2$s, %3$d are merged with contacts you already have (you get a few seconds to undo; after that it cannot be reverted) and %4$d are skipped.</string>
     <string name="import_progress">Saving %1$d of %2$d…</string>
     <string name="import_done">Created: %1$d · Merged: %2$d · Failed: %3$d</string>
     <string name="import_list">In the file</string>
@@ -208,6 +208,8 @@
     <string name="pick_note">Only what you choose goes to the app that asked: it does not see the rest of your contacts.</string>
     <string name="external_invalid">That request could not be opened</string>
     <string name="remove_item">Remove: %1$s</string>
+    <string name="import_backup">Save a backup of the contacts being merged (.vcf)</string>
+    <string name="backup_failed_import">Could not save the backup: nothing was imported</string>
     <plurals name="contacts_count">
         <item quantity="one">%d contact</item>
         <item quantity="other">%d contacts</item>

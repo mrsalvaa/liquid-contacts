@@ -13,6 +13,7 @@ class ContactsApp : Application() {
         Strings.app = this
         Stores.init(this)
         Repo.init(this)
-        VcfFiles.cleanShared(this)
+        // Al arrancar no queda nada de la vez anterior; durante el uso, a los 10 minutos.
+        VcfFiles.cleanShared(this, keepMs = 0)
     }
 }

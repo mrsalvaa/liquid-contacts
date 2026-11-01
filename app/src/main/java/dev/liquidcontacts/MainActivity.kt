@@ -111,7 +111,7 @@ import dev.liquidcontacts.util.str
 
 /** Pantallas que se abren encima de las pestañas. */
 sealed interface Overlay {
-    data object Settings : Overlay
+    data class Settings(val toAreaCode: Boolean = false) : Overlay
     data class Detail(val contactId: Long) : Overlay
     data class Edit(val target: EditTarget) : Overlay
     data class Label(val group: ContactGroup) : Overlay
@@ -218,8 +218,8 @@ fun ContactsUi(
     val tabContext = TabContext(
         padding = tabPadding,
         onContact = { push(Overlay.Detail(it)) },
-        onSettings = { push(Overlay.Settings) },
-        onAreaCode = { push(Overlay.Settings) },
+        onSettings = { push(Overlay.Settings()) },
+        onAreaCode = { push(Overlay.Settings(toAreaCode = true)) },
         onLabel = { push(Overlay.Label(it)) },
     )
 
@@ -321,7 +321,7 @@ fun ContactsUi(
                 }
                 holder.SaveableStateProvider(key) {
                     when (current) {
-                        Overlay.Settings -> SettingsScreen(overlayPadding, ::pop, onDuplicates = { push(Overlay.Duplicates) }, onImport = { push(Overlay.Import(it)) }, onExport = { push(Overlay.Export) })
+                        is Overlay.Settings -> SettingsScreen(overlayPadding, ::pop, current.toAreaCode, onDuplicates = { push(Overlay.Duplicates) }, onImport = { push(Overlay.Import(it)) }, onExport = { push(Overlay.Export) })
                         is Overlay.Import -> ImportScreen(current.data, overlayPadding, ::pop)
                         Overlay.Export -> ExportScreen(overlayPadding, ::pop)
                         is Overlay.Detail -> ContactDetailScreen(current.contactId, overlayPadding, ::pop, onEdit = { push(Overlay.Edit(EditTarget.Existing(current.contactId))) })

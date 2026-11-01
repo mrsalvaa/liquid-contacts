@@ -47,6 +47,8 @@ import dev.liquidcontacts.core.text.SpanishOrder
 import dev.liquidcontacts.data.Repo
 import dev.liquidcontacts.data.Row
 import dev.liquidcontacts.data.Stores
+import dev.liquidcontacts.ui.components.DangerButton
+import dev.liquidcontacts.ui.components.dangerText
 import dev.liquidcontacts.ui.components.AlphabetIndex
 import dev.liquidcontacts.ui.components.ContactRow
 import dev.liquidcontacts.ui.components.LetterHeader
@@ -99,7 +101,7 @@ fun PermissionScreen(padding: PaddingValues, onResult: () -> Unit) {
             Text(str(R.string.permission_text), Modifier.padding(top = 10.dp), fontSize = 15.sp, color = p.contentSecondary)
             Text(str(R.string.permission_privacy), Modifier.padding(top = 10.dp), fontSize = 15.sp, color = p.contentSecondary)
             if (denied) {
-                Text(str(R.string.permission_denied), Modifier.padding(top = 10.dp), fontSize = 14.sp, color = p.danger)
+                Text(str(R.string.permission_denied), Modifier.padding(top = 10.dp), fontSize = 14.sp, color = p.dangerText)
             }
             Spacer(Modifier.height(18.dp))
             GlassButton(
@@ -334,15 +336,16 @@ fun LabelsTab(ctx: TabContext) {
                                                     if (t.isNotBlank()) Repo.launch { Repo.contacts.renameGroup(g.id, t); Repo.reload() }
                                                 })
                                             },
-                                            SheetAction(str(R.string.delete_label), Icons.Rounded.DeleteOutline, danger = true) {
+                                            // Sin danger: el rojo de ui/glass no llega a 4,5:1 en claro; el diálogo que sigue sí es rojo.
+                                            SheetAction(str(R.string.delete_label), Icons.Rounded.DeleteOutline) {
                                                 dialog(
                                                     dev.liquidcontacts.ui.glass.DialogSpec(str(R.string.delete_label_title, g.title)) { dismiss ->
                                                         Text(str(R.string.delete_label_text), fontSize = 15.sp, color = p.contentSecondary)
                                                         Spacer(Modifier.height(16.dp))
-                                                        GlassButton(str(R.string.delete_label), {
+                                                        DangerButton(str(R.string.delete_label), {
                                                             dismiss()
                                                             Repo.launch { Repo.contacts.deleteGroup(g.id); Repo.reload() }
-                                                        }, Modifier.fillMaxWidth(), danger = true)
+                                                        }, Modifier.fillMaxWidth())
                                                         Spacer(Modifier.height(8.dp))
                                                         GlassButton(str(R.string.cancel), dismiss, Modifier.fillMaxWidth())
                                                     },

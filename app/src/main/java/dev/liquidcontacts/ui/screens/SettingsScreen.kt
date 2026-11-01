@@ -3,7 +3,10 @@ package dev.liquidcontacts.ui.screens
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
@@ -42,6 +45,7 @@ import dev.liquidcontacts.core.vcard.VCardImport
 import dev.liquidcontacts.data.Repo
 import dev.liquidcontacts.data.VcfFiles
 import dev.liquidcontacts.data.Stores
+import dev.liquidcontacts.ui.components.DangerButton
 import dev.liquidcontacts.ui.glass.DialogSpec
 import dev.liquidcontacts.ui.glass.GlassButton
 import dev.liquidcontacts.ui.glass.GlassCard
@@ -54,12 +58,14 @@ import dev.liquidcontacts.ui.glass.SettingRow
 import dev.liquidcontacts.util.plural
 import dev.liquidcontacts.util.str
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun SettingsScreen(padding: PaddingValues, onBack: () -> Unit, onDuplicates: () -> Unit, onImport: (VCardImport.Ok) -> Unit, onExport: () -> Unit) {
+fun SettingsScreen(padding: PaddingValues, onBack: () -> Unit, toAreaCode: Boolean = false, onDuplicates: () -> Unit, onImport: (VCardImport.Ok) -> Unit, onExport: () -> Unit) {
     val p = LocalGlass.current
     val context = LocalContext.current
     val dialog = LocalDialog.current
@@ -93,6 +99,14 @@ fun SettingsScreen(padding: PaddingValues, onBack: () -> Unit, onDuplicates: () 
         }
     }
 
+    // Desde el aviso de la lista se llega directo al campo.
+    val areaCodeField = remember { BringIntoViewRequester() }
+    if (toAreaCode) {
+        LaunchedEffect(Unit) {
+            delay(250)
+            areaCodeField.bringIntoView()
+        }
+    }
     val pickFile = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
             scope.launch {
@@ -122,7 +136,7 @@ fun SettingsScreen(padding: PaddingValues, onBack: () -> Unit, onDuplicates: () 
             )
             Text(str(R.string.default_country_hint), fontSize = 12.sp, color = p.contentSecondary)
             // El código de área por defecto, por ahora, solo existe para Argentina.
-            if (PhoneNumbers(s.defaultCountry.ifEmpty { "AR" }).supportsAreaCode) {
+            if (PhoneNumbers(s.defaultCountry.ifEmpty { "AR" }).supportsAreaCode) Column(Modifier.bringIntoViewRequester(areaCodeField)) {
                 Spacer(Modifier.height(14.dp))
                 Text(str(R.string.default_area_code), fontSize = 16.sp)
                 GlassTextField(
@@ -180,12 +194,12 @@ fun SettingsScreen(padding: PaddingValues, onBack: () -> Unit, onDuplicates: () 
                     }
                 }, Modifier.fillMaxWidth())
                 Spacer(Modifier.height(8.dp))
-                GlassButton(str(R.string.dev_clear), {
+                DangerButton(str(R.string.dev_clear), {
                     Repo.launch {
                         val n = DevTools.clear(Repo.contacts)
                         withContext(Dispatchers.Main) { toast(plural(R.plurals.dev_cleared, n)) }
                     }
-                }, Modifier.fillMaxWidth(), danger = true)
+                }, Modifier.fillMaxWidth())
             }
         }
         Spacer(Modifier.height(24.dp))

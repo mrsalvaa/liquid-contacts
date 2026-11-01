@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package dev.liquidcontacts.ui.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -24,8 +26,10 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -44,11 +48,15 @@ import dev.liquidcontacts.core.model.Phone
 import dev.liquidcontacts.core.vcard.ImportAction
 import dev.liquidcontacts.core.vcard.ImportMatch
 import dev.liquidcontacts.core.vcard.ImportMatcher
+import dev.liquidcontacts.core.vcard.VCardFormat
 import dev.liquidcontacts.core.vcard.VCardImport
 import dev.liquidcontacts.data.Repo
 import dev.liquidcontacts.data.Stores
 import dev.liquidcontacts.data.VcfFiles
 import dev.liquidcontacts.ui.components.ContactRow
+import dev.liquidcontacts.ui.components.LocalUndo
+import dev.liquidcontacts.ui.components.SwitchRow
+import dev.liquidcontacts.ui.components.UndoSpec
 import dev.liquidcontacts.ui.glass.DialogSpec
 import dev.liquidcontacts.ui.glass.GlassButton
 import dev.liquidcontacts.ui.glass.GlassCard
@@ -62,6 +70,7 @@ import dev.liquidcontacts.ui.glass.SheetSpec
 import dev.liquidcontacts.util.plural
 import dev.liquidcontacts.util.str
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
@@ -74,6 +83,9 @@ fun ImportScreen(data: VCardImport.Ok, padding: PaddingValues, onBack: () -> Uni
     val dialog = LocalDialog.current
     val sheet = LocalActionSheet.current
     val toast = LocalToast.current
+    val undo = LocalUndo.current
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val book by Repo.book.collectAsStateWithLifecycle()
     val numbers by Repo.numbers.collectAsStateWithLifecycle()
 
@@ -126,6 +138,8 @@ fun ImportScreen(data: VCardImport.Ok, padding: PaddingValues, onBack: () -> Uni
             var created = 0
             var merged = 0
             var failed = 0
+            // Copia en memoria de cada ficha antes de sumarle datos, para el Deshacer.
+            val before = LinkedHashMap<Long, EditableContact>()
             plan.forEachIndexed { i, (imported, action, targetId) ->
                 // Una falla (por ejemplo, un dato que el proveedor rechaza) no corta el resto.
                 val ok = runCatching {
@@ -135,6 +149,7 @@ fun ImportScreen(data: VCardImport.Ok, padding: PaddingValues, onBack: () -> Uni
                         ImportAction.MERGE -> {
                             val id = targetId ?: error("sin contacto para unir")
                             val current = Repo.contacts.loadForEdit(id) ?: error("el contacto ya no existe")
+                            before.putIfAbsent(current.rawContactId!!, current)
                             val result = Duplicates(numbers).merge(listOf(current.contact, c))
                             val photoChanged = current.contact.photo == null && result.photo != null
                             Repo.contacts.save(EditableContact(current.rawContactId, current.account, result), photoChanged).also { merged++ }
@@ -146,9 +161,51 @@ fun ImportScreen(data: VCardImport.Ok, padding: PaddingValues, onBack: () -> Uni
                 withContext(Dispatchers.Main) { progress = i + 1 }
             }
             withContext(Dispatchers.Main) {
-                toast(str(R.string.import_done, created, merged, failed))
+                val summary = str(R.string.import_done, created, merged, failed)
+                if (before.isEmpty()) {
+                    toast(summary)
+                } else {
+                    val copy = before.values.toList()
+                    undo(
+                        UndoSpec(summary, str(R.string.undo)) {
+                            Repo.launch {
+                                val ok = runCatching { Repo.contacts.restore(copy) }.isSuccess
+                                withContext(Dispatchers.Main) { toast(str(if (ok) R.string.merge_undone else R.string.merge_undo_failed)) }
+                            }
+                        },
+                    )
+                }
                 progress = -1
                 onBack()
+            }
+        }
+    }
+
+    var backup by remember { mutableStateOf(false) }
+    fun confirm() {
+        val a = account ?: return
+        dialog(
+            DialogSpec(str(R.string.import_confirm_title)) { dismiss ->
+                Text(
+                    str(R.string.import_confirm_text, count(ImportAction.NEW), Labels.account(a, local), count(ImportAction.MERGE), count(ImportAction.SKIP)),
+                    fontSize = 15.sp,
+                    color = p.contentSecondary,
+                )
+                Spacer(Modifier.height(16.dp))
+                GlassButton(str(R.string.import_button), { dismiss(); run() }, Modifier.fillMaxWidth(), prominent = true)
+                Spacer(Modifier.height(8.dp))
+                GlassButton(str(R.string.cancel), dismiss, Modifier.fillMaxWidth())
+            },
+        )
+    }
+    // Con respaldo: primero el archivo con los contactos que se van a tocar; si falla, no se importa.
+    val saveBackup = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(VcfFiles.MIME)) { uri ->
+        if (uri != null) {
+            scope.launch {
+                val ids = data.contacts.indices.filter { actionOf(it) == ImportAction.MERGE }.mapNotNull { targets[it] }.distinct()
+                val ok = withContext(Dispatchers.IO) { VcfFiles.write(context, uri, VcfFiles.contacts(ids, withPhotos = true), VCardFormat.V3, includePhoto = true) }
+                toast(str(if (ok) R.string.backup_saved else R.string.backup_failed_import))
+                if (ok) confirm()
             }
         }
     }
@@ -195,26 +252,12 @@ fun ImportScreen(data: VCardImport.Ok, padding: PaddingValues, onBack: () -> Uni
                         color = p.contentSecondary,
                     )
                     Spacer(Modifier.height(10.dp))
+                    if (count(ImportAction.MERGE) > 0) {
+                        SwitchRow(str(R.string.import_backup), backup, { backup = it }, subtitle = str(R.string.merge_backup_hint))
+                    }
                     GlassButton(
                         str(R.string.import_button),
-                        {
-                            val a = account
-                            if (a != null) {
-                                dialog(
-                                    DialogSpec(str(R.string.import_confirm_title)) { dismiss ->
-                                        Text(
-                                            str(R.string.import_confirm_text, count(ImportAction.NEW), Labels.account(a, local), count(ImportAction.MERGE), count(ImportAction.SKIP)),
-                                            fontSize = 15.sp,
-                                            color = p.contentSecondary,
-                                        )
-                                        Spacer(Modifier.height(16.dp))
-                                        GlassButton(str(R.string.import_button), { dismiss(); run() }, Modifier.fillMaxWidth(), prominent = true)
-                                        Spacer(Modifier.height(8.dp))
-                                        GlassButton(str(R.string.cancel), dismiss, Modifier.fillMaxWidth())
-                                    },
-                                )
-                            }
-                        },
+                        { if (backup && count(ImportAction.MERGE) > 0) saveBackup.launch(VcfFiles.backupName()) else confirm() },
                         Modifier.fillMaxWidth(),
                         prominent = true,
                         enabled = found != null && count(ImportAction.NEW) + count(ImportAction.MERGE) > 0,

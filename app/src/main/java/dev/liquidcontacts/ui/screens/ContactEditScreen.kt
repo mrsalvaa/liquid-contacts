@@ -63,6 +63,7 @@ import dev.liquidcontacts.core.model.Phone
 import dev.liquidcontacts.core.model.PostalAddress
 import dev.liquidcontacts.data.Repo
 import dev.liquidcontacts.data.Stores
+import dev.liquidcontacts.ui.components.DangerButton
 import dev.liquidcontacts.ui.components.ContactAvatar
 import dev.liquidcontacts.ui.components.SwitchRow
 import dev.liquidcontacts.ui.glass.DialogSpec
@@ -160,7 +161,7 @@ fun ContactEditScreen(target: EditTarget, padding: PaddingValues, onBack: () -> 
             DialogSpec(str(R.string.discard_title)) { dismiss ->
                 Text(str(R.string.discard_text), fontSize = 15.sp, color = p.contentSecondary)
                 Spacer(Modifier.height(16.dp))
-                GlassButton(str(R.string.discard), { dismiss(); onBack() }, Modifier.fillMaxWidth(), danger = true)
+                DangerButton(str(R.string.discard), { dismiss(); onBack() }, Modifier.fillMaxWidth())
                 Spacer(Modifier.height(8.dp))
                 GlassButton(str(R.string.keep_editing), dismiss, Modifier.fillMaxWidth())
             },
@@ -252,7 +253,7 @@ fun ContactEditScreen(target: EditTarget, padding: PaddingValues, onBack: () -> 
                                     DialogSpec(str(R.string.discard_title)) { dismiss ->
                                         Text(str(R.string.discard_text), fontSize = 15.sp, color = p.contentSecondary)
                                         Spacer(Modifier.height(16.dp))
-                                        GlassButton(str(R.string.discard), { dismiss(); rawChoice = raw }, Modifier.fillMaxWidth(), danger = true)
+                                        DangerButton(str(R.string.discard), { dismiss(); rawChoice = raw }, Modifier.fillMaxWidth())
                                         Spacer(Modifier.height(8.dp))
                                         GlassButton(str(R.string.keep_editing), dismiss, Modifier.fillMaxWidth())
                                     },

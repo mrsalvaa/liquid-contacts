@@ -99,12 +99,12 @@ object VcfFiles {
 
     /**
      * Borra los .vcf temporales que ya no hacen falta. No hay forma de saber cuándo terminó la app
-     * que los recibió, así que se les da [SHARED_KEEP_MS]; se llama al abrir la app, al volver a
-     * ella y antes de compartir de nuevo.
+     * que los recibió, así que se les da [SHARED_KEEP_MS]; se llama al volver a la app y antes de
+     * compartir de nuevo. Al arrancar la app se borran todos ([keepMs] 0).
      */
     fun cleanShared(context: Context, keepMs: Long = SHARED_KEEP_MS) {
         val limit = System.currentTimeMillis() - keepMs
-        File(context.cacheDir, SHARED_DIR).listFiles()?.filter { it.lastModified() < limit }?.forEach { it.delete() }
+        File(context.cacheDir, SHARED_DIR).listFiles()?.filter { keepMs == 0L || it.lastModified() < limit }?.forEach { it.delete() }
     }
 
     private const val SHARED_DIR = "shared"

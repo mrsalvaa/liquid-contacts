@@ -57,6 +57,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -68,6 +69,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.onClick
@@ -83,6 +85,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.liquidcontacts.core.avatar.Avatars
 import dev.liquidcontacts.ui.glass.ACCENT_HUES
+import dev.liquidcontacts.ui.glass.GlassPalette
 import dev.liquidcontacts.ui.glass.GlassSurface
 import dev.liquidcontacts.ui.glass.GlassSwitch
 import dev.liquidcontacts.ui.glass.LocalGlass
@@ -492,4 +495,46 @@ fun SwitchRow(title: String, checked: Boolean, onChange: (Boolean) -> Unit, modi
         subtitle = subtitle,
         trailing = { GlassSwitch(checked, onChange) },
     )
+}
+
+// ---------------------------------------------------------------- acciones destructivas
+
+/**
+ * Rojo de los botones destructivos. Excepción local a ui/glass: su `danger` es translúcido y con
+ * texto blanco no llega a 4,5:1 en tema claro. Este da más de 4,5:1 con blanco en claro y en
+ * oscuro, medido sobre la pantalla (ver DESIGN.md).
+ */
+val DangerFill = Color(0xFF9F1818)
+
+/** Texto de error sobre una tarjeta: el `danger` de ui/glass no llega a 4,5:1 en tema claro. */
+val GlassPalette.dangerText: Color get() = if (dark) danger else Color(0xFFB3261E)
+
+/** Como GlassButton(danger = true), con [DangerFill] opaco. */
+@Composable
+fun DangerButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector? = null, enabled: Boolean = true) {
+    GlassSurface(
+        modifier
+            .heightIn(min = 54.dp)
+            .graphicsLayer { alpha = if (enabled) 1f else 0.4f }
+            .semantics(mergeDescendants = true) {
+                role = Role.Button
+                if (!enabled) disabled()
+            },
+        shape = CircleShape,
+        strong = true,
+        tint = DangerFill,
+        onClick = if (enabled) onClick else null,
+    ) {
+        Row(
+            Modifier.align(Alignment.Center).padding(horizontal = 22.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+        ) {
+            if (icon != null) {
+                Icon(styled(icon), null, Modifier.size(20.dp), tint = Color.White)
+                Spacer(Modifier.width(8.dp))
+            }
+            Text(text, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+        }
+    }
 }

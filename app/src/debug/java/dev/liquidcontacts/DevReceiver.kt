@@ -13,7 +13,7 @@ import dev.liquidcontacts.data.Stores
  *   adb shell am broadcast -a dev.liquidcontacts.DEV_GENERATE -p dev.liquidcontacts.debug [--ei count 520]
  *   adb shell am broadcast -a dev.liquidcontacts.DEV_CLEAR -p dev.liquidcontacts.debug
  *   adb shell am broadcast -a dev.liquidcontacts.DEV_MULTI -p dev.liquidcontacts.debug
- *   adb shell am broadcast -a dev.liquidcontacts.DEV_STYLE -p dev.liquidcontacts.debug --ei background 0 --ei ui 0
+ *   adb shell am broadcast -a dev.liquidcontacts.DEV_STYLE -p dev.liquidcontacts.debug --ei background 0 --ei ui 0 --ei theme 1
  * En el registro solo va la cantidad, nunca datos de contactos.
  */
 class DevReceiver : BroadcastReceiver() {
@@ -29,7 +29,8 @@ class DevReceiver : BroadcastReceiver() {
                     "dev.liquidcontacts.DEV_STYLE" -> {
                         val bg = intent.getIntExtra("background", 2)
                         val ui = intent.getIntExtra("ui", 0)
-                        Stores.settings.update { it.copy(backgroundMode = bg, uiStyle = ui) }
+                        val theme = intent.getIntExtra("theme", 0)
+                        Stores.settings.update { it.copy(backgroundMode = bg, uiStyle = ui, themeMode = theme) }
                         bg
                     }
                     else -> 0
