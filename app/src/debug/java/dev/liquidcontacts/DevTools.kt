@@ -13,8 +13,8 @@ import kotlin.random.Random
 
 /**
  * Solo en debug y profile: una agenda grande de datos INVENTADOS para probar el rendimiento y la
- * interfaz sin usar contactos reales. Todos van en la etiqueta [LABEL] (en la cuenta local), y
- * "Borrar agenda de prueba" borra exactamente esos.
+ * interfaz sin usar contactos reales. Todos van en la etiqueta [LABEL] (en la cuenta local) y cada
+ * ficha queda marcada con un SOURCE_ID propio: "Borrar contactos de prueba" borra solo esas fichas.
  *
  * Los números usan el formato argentino con abonados al azar; los emails, el dominio reservado
  * example.com (no existe ninguna casilla real ahí).
@@ -22,6 +22,7 @@ import kotlin.random.Random
 object DevTools {
     const val available = true
     const val LABEL = "Prueba (debug)"
+    private const val SOURCE = "liquidcontacts-debug-"
 
     private val given = listOf(
         "Ana", "Ángela", "Beatriz", "Bruno", "Camila", "Carlos", "Cecilia", "Damián", "Daniela", "Emilia", "Esteban", "Facundo",
@@ -63,16 +64,21 @@ object DevTools {
                 groups = setOf(LABEL),
                 starred = i % 40 == 0,
             )
-            runCatching { contacts.save(EditableContact(null, account, c), photoChanged = false) }.onSuccess { made++ }
+            // La ficha nace marcada con su origen: "borrar" solo toca las que tienen esa marca.
+            runCatching { contacts.save(EditableContact(null, account, c), photoChanged = false, sourceId = "$SOURCE$i") }.onSuccess { made++ }
         }
         return made
     }
 
+    /**
+     * Borra solo las fichas que creó [generate] (por su SOURCE_ID "liquidcontacts-debug-N"), una
+     * por una: si alguna se unió a un contacto real, el contacto real queda. Después borra la
+     * etiqueta de prueba si quedó vacía. Nunca borra por nombre ni por etiqueta.
+     */
     fun clear(contacts: SystemContacts): Int {
-        val group = contacts.groups().firstOrNull { it.title == LABEL } ?: return 0
-        val ids = contacts.groupMembers(group.id)
-        ids.forEach(contacts::delete)
-        contacts.deleteGroup(group.id)
-        return ids.size
+        val raws = contacts.rawIdsWithSourcePrefix(SOURCE)
+        raws.forEach(contacts::deleteRaw)
+        contacts.groups().filter { it.title == LABEL && it.count == 0 }.forEach { contacts.deleteGroup(it.id) }
+        return raws.size
     }
 }

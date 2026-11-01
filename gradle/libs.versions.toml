@@ -1,5 +1,6 @@
 # Mismas versiones que Liquid Calendar (AGP 8.9 + compileSdk 35).
 # libphonenumber: solo el artefacto base (metadatos dentro del jar, sin red; geocoder y carrier no).
+# ez-vcard: sin sus dependencias para hCard (jsoup), plantillas (freemarker) ni jCard (jackson).
 [versions]
 agp = "8.9.3"
 kotlin = "2.2.21"
@@ -10,6 +11,8 @@ lifecycle = "2.9.0"
 serialization = "1.8.1"
 backdrop = "1.0.0"
 libphonenumber = "9.0.42"
+ezvcard = "0.12.2"
+freemarker = "2.3.32"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -23,6 +26,8 @@ androidx-compose-material-icons-extended = { group = "androidx.compose.material"
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization" }
 backdrop = { group = "io.github.kyant0", name = "backdrop", version.ref = "backdrop" }
 libphonenumber = { group = "com.googlecode.libphonenumber", name = "libphonenumber", version.ref = "libphonenumber" }
+ezvcard = { group = "com.googlecode.ez-vcard", name = "ez-vcard", version.ref = "ezvcard" }
+freemarker = { group = "org.freemarker", name = "freemarker", version.ref = "freemarker" }
 kotlin-test = { group = "org.jetbrains.kotlin", name = "kotlin-test-junit", version.ref = "kotlin" }
 
 [plugins]

@@ -20,5 +20,15 @@ kotlin {
 
 dependencies {
     implementation(libs.libphonenumber)
+    // Solo vCard de texto (2.1, 3.0 y 4.0): fuera lo que ez-vcard usa para HTML, plantillas y JSON.
+    implementation(libs.ezvcard) {
+        exclude(group = "org.jsoup")
+        exclude(group = "org.freemarker")
+        exclude(group = "com.fasterxml.jackson.core")
+    }
     testImplementation(libs.kotlin.test)
+    // Solo para los tests en la JVM: la clase VCard menciona excepciones de freemarker y la JVM las
+    // exige al cargarla. Android la verifica de forma perezosa y nunca llega a usarlas (ver las
+    // reglas -dontwarn de app/proguard-rules.pro), así que freemarker no va en el APK.
+    testRuntimeOnly(libs.freemarker)
 }

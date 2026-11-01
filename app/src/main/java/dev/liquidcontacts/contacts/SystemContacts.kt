@@ -387,9 +387,10 @@ class SystemContacts(private val app: android.content.Context) {
      * Crea o actualiza una ficha. Al actualizar se reemplazan solo los datos que maneja esta app
      * (nombre, teléfonos, emails, direcciones, fechas, apodo, empresa, nota, webs, etiquetas y,
      * si [photoChanged], la foto); lo que hayan guardado otras apps con sus propios tipos queda.
+     * [sourceId] solo se usa al crear (lo usan las herramientas de prueba para marcar sus fichas).
      * Devuelve el id del contacto.
      */
-    fun save(edit: EditableContact, photoChanged: Boolean): Long {
+    fun save(edit: EditableContact, photoChanged: Boolean, sourceId: String? = null): Long {
         val c = edit.contact
         val ops = ArrayList<ContentProviderOperation>()
         val rawId = edit.rawContactId
@@ -398,6 +399,7 @@ class SystemContacts(private val app: android.content.Context) {
             ops += ContentProviderOperation.newInsert(RawContacts.CONTENT_URI)
                 .withValue(RawContacts.ACCOUNT_TYPE, edit.account.type)
                 .withValue(RawContacts.ACCOUNT_NAME, edit.account.name)
+                .apply { if (sourceId != null) withValue(RawContacts.SOURCE_ID, sourceId) }
                 .build()
             rawRef = { it.withValueBackReference(Data.RAW_CONTACT_ID, 0) }
         } else {
@@ -551,6 +553,21 @@ class SystemContacts(private val app: android.content.Context) {
         resolver.applyBatch(ContactsContract.AUTHORITY, ops)
         if (merged.starred) contactIdOf(all.first())?.let { setStarred(it, true) }
         return contactIdOf(all.first()) ?: contactIds.first()
+    }
+
+    /** Fichas cuyo SOURCE_ID empieza con [prefix] (sin las ya borradas). */
+    fun rawIdsWithSourcePrefix(prefix: String): List<Long> =
+        resolver.query(
+            RawContacts.CONTENT_URI,
+            arrayOf(RawContacts._ID),
+            "${RawContacts.SOURCE_ID} LIKE ? AND ${RawContacts.DELETED} = 0",
+            arrayOf(prefix.replace("%", "").replace("_", "") + "%"),
+            null,
+        )?.use { c -> buildList { while (c.moveToNext()) add(c.getLong(0)) } }.orEmpty()
+
+    /** Borra una sola ficha (no el contacto entero: si estaba unida a otra, esa queda). */
+    fun deleteRaw(rawId: Long) {
+        resolver.delete(ContentUris.withAppendedId(RawContacts.CONTENT_URI, rawId), null, null)
     }
 
     // ---------------------------------------------------------------- cambios
