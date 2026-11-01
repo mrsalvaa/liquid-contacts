@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package dev.liquidcontacts
 
+import dev.liquidcontacts.contacts.ContactAccount
 import dev.liquidcontacts.contacts.EditableContact
 import dev.liquidcontacts.contacts.SystemContacts
 import dev.liquidcontacts.core.model.Contact
@@ -68,6 +69,25 @@ object DevTools {
             runCatching { contacts.save(EditableContact(null, account, c), photoChanged = false, sourceId = "$SOURCE$i") }.onSuccess { made++ }
         }
         return made
+    }
+
+    /**
+     * Un contacto inventado con fichas en dos cuentas: la local y una cuenta de prueba que no
+     * existe en el sistema. Sirve para probar la edición por ficha y la unión sin borrado.
+     */
+    fun generateMultiAccount(contacts: SystemContacts): Int {
+        val local = contacts.save(
+            EditableContact(null, contacts.localAccount(), Contact(name = Name(given = "Fichas", family = "Dos Cuentas"), phones = listOf(Phone("011 4000-1111")))),
+            photoChanged = false,
+            sourceId = SOURCE + "multi-1",
+        )
+        val other = contacts.save(
+            EditableContact(null, ContactAccount("dev.liquidcontacts.test", "cuenta-prueba@example.com"), Contact(name = Name(given = "Fichas", family = "Otra Cuenta"), emails = listOf(Email("fichas@example.com")))),
+            photoChanged = false,
+            sourceId = SOURCE + "multi-2",
+        )
+        contacts.merge(listOf(local, other), Contact())
+        return 1
     }
 
     /**

@@ -15,6 +15,7 @@
                 <action android:name="dev.liquidcontacts.DEV_GENERATE" />
                 <action android:name="dev.liquidcontacts.DEV_CLEAR" />
                 <action android:name="dev.liquidcontacts.DEV_STYLE" />
+                <action android:name="dev.liquidcontacts.DEV_MULTI" />
             </intent-filter>
         </receiver>
     </application>

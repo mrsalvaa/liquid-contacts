@@ -6,6 +6,10 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.LruCache
+import android.view.accessibility.AccessibilityManager
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -14,12 +18,14 @@ import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -35,6 +41,8 @@ import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -56,10 +64,12 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -78,6 +88,7 @@ import dev.liquidcontacts.ui.glass.muted
 import dev.liquidcontacts.ui.glass.readableOn
 import dev.liquidcontacts.ui.glass.styled
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 /*
@@ -395,3 +406,67 @@ fun NoticeCard(
         }
     }
 }
+
+// ---------------------------------------------------------------- deshacer
+
+/** Aviso con una acción para revertir lo que se acaba de hacer. */
+class UndoSpec(val text: String, val actionLabel: String, val onUndo: () -> Unit)
+
+val LocalUndo = staticCompositionLocalOf<(UndoSpec) -> Unit> { {} }
+
+/**
+ * Píldora de cristal con "Deshacer" abajo de la pantalla. Dura [UNDO_MS] o lo que pida la
+ * accesibilidad del sistema ("Tiempo para actuar"); cuando vence, la copia en memoria se suelta.
+ */
+@Composable
+fun BoxScope.UndoHost(spec: UndoSpec?, onDone: () -> Unit) {
+    val context = LocalContext.current
+    var last by remember { mutableStateOf(spec) }
+    if (spec != null) last = spec
+    LaunchedEffect(spec) {
+        if (spec != null) {
+            val manager = context.getSystemService(AccessibilityManager::class.java)
+            delay(
+                manager.getRecommendedTimeoutMillis(
+                    UNDO_MS,
+                    AccessibilityManager.FLAG_CONTENT_TEXT or AccessibilityManager.FLAG_CONTENT_CONTROLS,
+                ).toLong(),
+            )
+            onDone()
+        }
+    }
+    AnimatedVisibility(
+        spec != null,
+        Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 100.dp, start = 16.dp, end = 16.dp),
+        enter = fadeIn(),
+        exit = fadeOut(),
+    ) {
+        val p = LocalGlass.current
+        GlassSurface(Modifier.fillMaxWidth(), shape = CircleShape, strong = true, frost = 12.dp) {
+            Row(Modifier.padding(start = 20.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    last?.text.orEmpty(),
+                    Modifier.weight(1f).semantics { liveRegion = LiveRegionMode.Polite },
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                )
+                Text(
+                    last?.actionLabel.orEmpty(),
+                    Modifier
+                        .heightIn(min = 48.dp)
+                        .clip(CircleShape)
+                        .clickable(role = Role.Button) {
+                            last?.onUndo?.invoke()
+                            onDone()
+                        }
+                        .padding(horizontal = 14.dp, vertical = 14.dp),
+                    color = p.accentFg,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+        }
+    }
+}
+
+private const val UNDO_MS = 10_000

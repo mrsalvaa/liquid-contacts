@@ -135,7 +135,6 @@
     <string name="merge_contacts">Contactos</string>
     <string name="merge_result">Resultado</string>
     <string name="merge_pick_two">Activá al menos dos contactos para ver el resultado.</string>
-    <string name="merge_confirm_text">Se conserva todo sin repetir datos. Si los contactos están en la misma cuenta quedan en uno solo; si están en cuentas distintas se vinculan y cada cuenta conserva su copia.</string>
     <string name="merged">Contactos unidos</string>
     <string name="merge_failed">No se pudieron unir los contactos</string>
     <string name="numbers">Números de teléfono</string>
@@ -154,6 +153,17 @@
     <string name="dev_generate">Crear 520 contactos de prueba</string>
     <string name="dev_clear">Borrar contactos de prueba</string>
     <string name="dev_working">Creando contactos de prueba…</string>
+    <string name="undo">Deshacer</string>
+    <string name="merge_undone">Unión revertida</string>
+    <string name="merge_undo_failed">No se pudo revertir la unión</string>
+    <string name="merge_confirm_deletes">Quedan en un solo contacto y los demás se borran. Vas a tener unos segundos para deshacer; después no se puede revertir.</string>
+    <string name="merge_confirm_links">Están en cuentas distintas: se muestran como un solo contacto y cada cuenta conserva su copia. No se borra nada.</string>
+    <string name="merge_backup">Guardar respaldo de los originales (.vcf)</string>
+    <string name="merge_backup_hint">Antes de unir elegís dónde guardarlo. El archivo no va cifrado.</string>
+    <string name="backup_saved">Respaldo guardado</string>
+    <string name="backup_failed">No se pudo guardar el respaldo: no se unió nada</string>
+    <string name="fichas_title">Fichas de este contacto, por cuenta</string>
+    <string name="fichas_hint">Android las muestra como un solo contacto. Cada ficha se guarda en su cuenta: elegí cuál editar.</string>
     <plurals name="contacts_count">
         <item quantity="one">%d contacto</item>
         <item quantity="many">%d contactos</item>

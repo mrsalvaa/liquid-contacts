@@ -9,6 +9,7 @@ import dev.liquidcontacts.core.model.LabelKind
 import dev.liquidcontacts.core.model.Name
 import dev.liquidcontacts.core.model.Phone
 import dev.liquidcontacts.core.model.PostalAddress
+import dev.liquidcontacts.core.text.Clean
 import ezvcard.VCard
 import ezvcard.VCardVersion
 import ezvcard.io.text.VCardReader
@@ -33,9 +34,12 @@ import java.nio.charset.CharacterCodingException
 import java.nio.charset.Charset
 import java.nio.charset.CodingErrorAction
 import java.io.StringWriter
+import java.io.Writer
 import java.time.LocalDate
 import java.time.temporal.ChronoField
 import java.time.temporal.Temporal
+
+enum class VCardFormat { V3, V4 }
 
 /** Límites de importación: un archivo enorme o con miles de fotos no puede colgar la app. */
 data class VCardLimits(
@@ -118,14 +122,17 @@ object VCards {
     }
 
     /** vCard de texto con todos los contactos. Sin PRODID (no identifica a la app). */
-    fun write(contacts: List<Contact>, version: VCardVersion = VCardVersion.V3_0, includePhoto: Boolean = true): String {
+    fun write(contacts: List<Contact>, format: VCardFormat = VCardFormat.V3, includePhoto: Boolean = true): String =
+        StringWriter().also { write(it, contacts.asSequence(), format, includePhoto) }.toString()
+
+    /** Igual, de a uno: una agenda grande con fotos no se arma entera en memoria. */
+    fun write(out: Writer, contacts: Sequence<Contact>, format: VCardFormat = VCardFormat.V3, includePhoto: Boolean = true) {
+        val version = if (format == VCardFormat.V4) VCardVersion.V4_0 else VCardVersion.V3_0
         // VCardWriter directo: la fachada Ezvcard arrastra clases de freemarker, que no se incluye.
-        val out = StringWriter()
-        VCardWriter(out, version).use { w ->
-            w.isAddProdId = false
-            contacts.forEach { w.write(toVCard(it, version, includePhoto)) }
-        }
-        return out.toString()
+        val w = VCardWriter(out, version)
+        w.isAddProdId = false
+        contacts.forEach { w.write(toVCard(it, version, includePhoto)) }
+        w.flush()
     }
 
     // ---------------------------------------------------------------- vCard → Contact
@@ -134,7 +141,7 @@ object VCards {
         val n: StructuredName? = card.structuredName
         val formatted = card.formattedName?.value?.trim().orEmpty()
         val name = Name(
-            display = formatted,
+            display = formatted.clean().orEmpty(),
             given = n?.given?.clean(),
             family = n?.family?.clean(),
             middle = n?.additionalNames?.joinToString(" ")?.clean(),
@@ -142,11 +149,11 @@ object VCards {
             suffix = n?.suffixes?.joinToString(" ")?.clean(),
         )
         val phones = card.telephoneNumbers.mapNotNull { t ->
-            val number = (t.text ?: t.uri?.number)?.clean() ?: return@mapNotNull null
+            val number = Clean.phone(t.text ?: t.uri?.number) ?: return@mapNotNull null
             Phone(number, phoneKind(t.types), primary = t.types.contains(TelephoneType.PREF) || t.pref == 1)
         }
         val emails = card.emails.mapNotNull { e ->
-            val address = e.value?.clean() ?: return@mapNotNull null
+            val address = Clean.email(e.value) ?: return@mapNotNull null
             Email(address, emailKind(e.types), primary = e.types.contains(EmailType.PREF) || e.pref == 1)
         }
         val addresses = card.addresses.mapNotNull { a -> toAddress(a).takeIf { it.formatted.isNotBlank() } }
@@ -183,13 +190,13 @@ object VCards {
             nickname = card.nickname?.values?.firstOrNull()?.clean(),
             organization = card.organization?.values?.firstOrNull()?.clean(),
             jobTitle = card.titles.firstOrNull()?.value?.clean(),
-            phones = phones,
-            emails = emails,
-            addresses = addresses,
-            events = events,
-            websites = card.urls.mapNotNull { it.value?.clean() },
-            note = card.notes.mapNotNull { it.value?.clean() }.joinToString("\n\n").ifEmpty { null },
-            groups = card.categoriesList.flatMap { it.values }.mapNotNull { it.clean() }.toSet(),
+            phones = phones.take(MAX_ITEMS),
+            emails = emails.take(MAX_ITEMS),
+            addresses = addresses.take(MAX_ITEMS),
+            events = events.take(MAX_ITEMS),
+            websites = card.urls.mapNotNull { Clean.url(it.value) }.take(MAX_ITEMS),
+            note = Clean.multiline(card.notes.mapNotNull { it.value }.joinToString("\n\n")),
+            groups = card.categoriesList.flatMap { it.values }.mapNotNull { it.clean() }.take(MAX_ITEMS).toSet(),
             photo = photo,
         )
         // Una tarjeta sin nada que la identifique no se importa.
@@ -346,5 +353,8 @@ object VCards {
 
     private fun ByteArray.isPng(): Boolean = size > 4 && this[0] == 0x89.toByte() && this[1] == 'P'.code.toByte()
 
-    private fun String.clean(): String? = trim().takeIf { it.isNotEmpty() }
+    private fun String.clean(): String? = Clean.line(this)
+
+    /** Teléfonos, emails, direcciones... por contacto: una tarjeta con miles no pasa. */
+    private const val MAX_ITEMS = 100
 }

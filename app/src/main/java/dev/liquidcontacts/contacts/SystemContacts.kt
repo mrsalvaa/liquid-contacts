@@ -52,6 +52,17 @@ data class ContactAccount(val type: String?, val name: String?) {
 /** Un contacto listo para editar: los datos de UNA de sus fichas (raw contact) y su cuenta. */
 data class EditableContact(val rawContactId: Long?, val account: ContactAccount, val contact: Contact)
 
+/** Copia en memoria de lo que una unión reemplazó y borró; no se guarda en ningún lado. */
+class MergeUndo internal constructor(
+    internal val keepRaw: Long,
+    internal val account: ContactAccount,
+    internal val first: Contact,
+    internal val others: List<Contact>,
+)
+
+/** Resultado de unir. [undo] solo existe si la unión borró contactos. */
+class MergeResult(val contactId: Long, val undo: MergeUndo?)
+
 /** Una etiqueta (grupo) con su cuenta y cuántos contactos tiene. */
 data class ContactGroup(val id: Long, val title: String, val account: ContactAccount, val count: Int)
 
@@ -132,13 +143,19 @@ class SystemContacts(private val app: android.content.Context) {
      * La ficha que se edita: la de la cuenta preferida si el contacto tiene una ahí; si no, la
      * primera. Un contacto que Android armó con fichas de varias cuentas se edita de a una.
      */
-    fun loadForEdit(contactId: Long, preferred: ContactAccount? = null): EditableContact? {
+    fun loadForEdit(contactId: Long, preferred: ContactAccount? = null, rawChoice: Long? = null): EditableContact? {
         val raws = rawContactIds(contactId)
         if (raws.isEmpty()) return null
-        val (rawId, account) = raws.firstOrNull { it.second == preferred } ?: raws.first()
+        val (rawId, account) = raws.firstOrNull { it.first == rawChoice } ?: raws.firstOrNull { it.second == preferred } ?: raws.first()
         val starred = load(contactId)?.starred ?: false
         val photo = readPhoto(rawId)
         return EditableContact(rawId, account, readRaw(rawId).copy(id = contactId, starred = starred, photo = photo))
+    }
+
+    /** El contacto tal como se ve, con la foto de la primera ficha que tenga (para respaldos y vistas previas). */
+    fun loadFull(contactId: Long): Contact? {
+        val c = load(contactId) ?: return null
+        return c.copy(photo = rawContactIds(contactId).firstNotNullOfOrNull { readPhoto(it.first) })
     }
 
     /** Fichas (raw contacts) de un contacto con su cuenta, sin las borradas. */
@@ -254,7 +271,7 @@ class SystemContacts(private val app: android.content.Context) {
         return resolver.query(
             Groups.CONTENT_URI,
             arrayOf(Groups.TITLE),
-            "${Groups._ID} IN (${ids.joinToString(",")}) AND ${Groups.DELETED} = 0 AND ${Groups.GROUP_IS_READ_ONLY} = 0 AND ${Groups.AUTO_ADD} = 0",
+            "${Groups._ID} IN (${ids.joinToString(",")}) AND $EDITABLE_GROUP",
             null,
             null,
         )?.use { c -> buildSet { while (c.moveToNext()) c.getString(0)?.takeIf { it.isNotBlank() }?.let(::add) } }.orEmpty()
@@ -303,7 +320,7 @@ class SystemContacts(private val app: android.content.Context) {
         return resolver.query(
             Groups.CONTENT_URI,
             arrayOf(Groups._ID, Groups.TITLE, Groups.ACCOUNT_TYPE, Groups.ACCOUNT_NAME),
-            "${Groups.DELETED} = 0 AND ${Groups.GROUP_IS_READ_ONLY} = 0 AND ${Groups.AUTO_ADD} = 0 AND ${Groups.SYSTEM_ID} IS NULL",
+            EDITABLE_GROUP,
             null,
             Groups.TITLE,
         )?.use { c ->
@@ -315,6 +332,12 @@ class SystemContacts(private val app: android.content.Context) {
                 }
             }
         }.orEmpty()
+    }
+
+    private fun editableGroupIds(account: ContactAccount): List<Long> {
+        val (sel, args) = accountSelection(Groups.ACCOUNT_TYPE, Groups.ACCOUNT_NAME, account)
+        return resolver.query(Groups.CONTENT_URI, arrayOf(Groups._ID), "$EDITABLE_GROUP AND $sel", args, null)
+            ?.use { c -> buildList { while (c.moveToNext()) add(c.getLong(0)) } }.orEmpty()
     }
 
     /** Ids de contacto de los miembros de una etiqueta. */
@@ -395,6 +418,9 @@ class SystemContacts(private val app: android.content.Context) {
         val ops = ArrayList<ContentProviderOperation>()
         val rawId = edit.rawContactId
         val rawRef: (ContentProviderOperation.Builder) -> ContentProviderOperation.Builder
+        var keepNickname = false
+        var keepOrganization = false
+        var keepNote = false
         if (rawId == null) {
             ops += ContentProviderOperation.newInsert(RawContacts.CONTENT_URI)
                 .withValue(RawContacts.ACCOUNT_TYPE, edit.account.type)
@@ -403,12 +429,32 @@ class SystemContacts(private val app: android.content.Context) {
                 .build()
             rawRef = { it.withValueBackReference(Data.RAW_CONTACT_ID, 0) }
         } else {
-            val managed = MANAGED_TYPES + if (photoChanged) listOf(CommonDataKinds.Photo.CONTENT_ITEM_TYPE) else emptyList()
+            // Apodo, empresa y nota solo se reescriben si cambiaron: la app muestra uno de cada uno,
+            // y reescribirlos perdería un segundo apodo o el departamento que cargó otra app.
+            val before = readRaw(rawId)
+            keepNickname = before.nickname?.trim().orEmpty() == c.nickname?.trim().orEmpty()
+            keepOrganization = before.organization?.trim().orEmpty() == c.organization?.trim().orEmpty() &&
+                before.jobTitle?.trim().orEmpty() == c.jobTitle?.trim().orEmpty()
+            keepNote = before.note?.trim().orEmpty() == c.note?.trim().orEmpty()
+            val replaced = MANAGED_TYPES.filter { t ->
+                !(keepNickname && t == CommonDataKinds.Nickname.CONTENT_ITEM_TYPE) &&
+                    !(keepOrganization && t == CommonDataKinds.Organization.CONTENT_ITEM_TYPE) &&
+                    !(keepNote && t == CommonDataKinds.Note.CONTENT_ITEM_TYPE)
+            } + if (photoChanged) listOf(CommonDataKinds.Photo.CONTENT_ITEM_TYPE) else emptyList()
             ops += ContentProviderOperation.newDelete(Data.CONTENT_URI)
                 .withSelection(
-                    "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} IN (${managed.joinToString(",") { "?" }})",
-                    arrayOf(rawId.toString()) + managed,
+                    "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} IN (${replaced.joinToString(",") { "?" }})",
+                    (listOf(rawId.toString()) + replaced).toTypedArray(),
                 ).build()
+            // De las etiquetas, solo las del usuario: la pertenencia a grupos del sistema no se toca.
+            val editable = editableGroupIds(edit.account)
+            if (editable.isNotEmpty()) {
+                ops += ContentProviderOperation.newDelete(Data.CONTENT_URI)
+                    .withSelection(
+                        "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} = ? AND ${CommonDataKinds.GroupMembership.GROUP_ROW_ID} IN (${editable.joinToString(",")})",
+                        arrayOf(rawId.toString(), CommonDataKinds.GroupMembership.CONTENT_ITEM_TYPE),
+                    ).build()
+            }
             rawRef = { it.withValue(Data.RAW_CONTACT_ID, rawId) }
         }
         fun row(mime: String, vararg values: Pair<String, Any?>) {
@@ -472,15 +518,15 @@ class SystemContacts(private val app: android.content.Context) {
                 CommonDataKinds.Event.LABEL to e.label.takeIf { e.kind == EventKind.CUSTOM },
             )
         }
-        c.nickname?.trim()?.takeIf { it.isNotEmpty() }?.let { row(CommonDataKinds.Nickname.CONTENT_ITEM_TYPE, CommonDataKinds.Nickname.NAME to it) }
-        if (!c.organization.isNullOrBlank() || !c.jobTitle.isNullOrBlank()) {
+        if (!keepNickname) c.nickname?.trim()?.takeIf { it.isNotEmpty() }?.let { row(CommonDataKinds.Nickname.CONTENT_ITEM_TYPE, CommonDataKinds.Nickname.NAME to it) }
+        if (!keepOrganization && (!c.organization.isNullOrBlank() || !c.jobTitle.isNullOrBlank())) {
             row(
                 CommonDataKinds.Organization.CONTENT_ITEM_TYPE,
                 CommonDataKinds.Organization.COMPANY to c.organization?.trim().nullIfBlank(),
                 CommonDataKinds.Organization.TITLE to c.jobTitle?.trim().nullIfBlank(),
             )
         }
-        c.note?.trim()?.takeIf { it.isNotEmpty() }?.let { row(CommonDataKinds.Note.CONTENT_ITEM_TYPE, CommonDataKinds.Note.NOTE to it) }
+        if (!keepNote) c.note?.trim()?.takeIf { it.isNotEmpty() }?.let { row(CommonDataKinds.Note.CONTENT_ITEM_TYPE, CommonDataKinds.Note.NOTE to it) }
         c.websites.map { it.trim() }.filter { it.isNotEmpty() }.forEach { row(CommonDataKinds.Website.CONTENT_ITEM_TYPE, CommonDataKinds.Website.URL to it) }
         for (title in c.groups.map { it.trim() }.filter { it.isNotEmpty() }.toSet()) {
             row(CommonDataKinds.GroupMembership.CONTENT_ITEM_TYPE, CommonDataKinds.GroupMembership.GROUP_ROW_ID to findOrCreateGroup(title, edit.account))
@@ -521,25 +567,34 @@ class SystemContacts(private val app: android.content.Context) {
         resolver.delete(ContentUris.withAppendedId(Contacts.CONTENT_URI, contactId), null, null)
     }
 
+    /** Si unir estos contactos borra fichas (todas de una sola ficha y de la misma cuenta). */
+    fun mergeDeletes(contactIds: List<Long>): Boolean {
+        val raws = contactIds.map { rawContactIds(it) }
+        return raws.all { it.size == 1 } && raws.flatten().map { it.second }.toSet().size == 1
+    }
+
     /**
      * Une contactos que el usuario confirmó con la vista previa [merged]:
-     * - Si son todos de una sola ficha y de la misma cuenta, la unión se escribe en la ficha del
-     *   primero y se borran los demás (en un servidor CardDAV queda un solo contacto).
+     * - Si son todos de una sola ficha y de la misma cuenta ([mergeDeletes]), la unión se escribe
+     *   en la ficha del primero y se borran los demás (en un servidor CardDAV queda uno solo).
+     *   Devuelve una copia en memoria de los originales para [undoMerge].
      * - Si hay fichas de distintas cuentas, se vinculan (Android los muestra como uno) sin borrar
      *   nada de ninguna cuenta.
-     * Devuelve el id del contacto resultante.
      */
-    fun merge(contactIds: List<Long>, merged: Contact): Long {
+    fun merge(contactIds: List<Long>, merged: Contact): MergeResult {
         require(contactIds.size >= 2)
         val raws = contactIds.map { rawContactIds(it) }
-        val single = raws.all { it.size == 1 }
-        val accounts = raws.flatten().map { it.second }.toSet()
-        if (single && accounts.size == 1) {
+        if (mergeDeletes(contactIds)) {
             val (keepRaw, account) = raws.first().single()
-            val photoChanged = merged.photo != null && readPhoto(keepRaw) == null
-            val id = save(EditableContact(keepRaw, account, merged), photoChanged)
-            contactIds.drop(1).forEach(::delete)
-            return id
+            val originals = contactIds.map { loadForEdit(it) ?: error("el contacto ya no existe") }
+            val photo = merged.photo ?: originals.firstNotNullOfOrNull { it.contact.photo }
+            val photoChanged = photo != null && originals.first().contact.photo == null
+            save(EditableContact(keepRaw, account, merged.copy(photo = photo)), photoChanged)
+            // Por ficha y con los ids de antes de escribir: al quedar con el mismo nombre y número,
+            // Android junta las fichas en un contacto y el id de contacto de las otras deja de existir.
+            raws.drop(1).forEach { deleteRaw(it.single().first) }
+            val id = contactIdOf(keepRaw) ?: error("la ficha no tiene contacto")
+            return MergeResult(id, MergeUndo(keepRaw, account, originals.first().contact, originals.drop(1).map { it.contact }))
         }
         val all = raws.flatten().map { it.first }
         val ops = ArrayList<ContentProviderOperation>()
@@ -552,7 +607,17 @@ class SystemContacts(private val app: android.content.Context) {
         }
         resolver.applyBatch(ContactsContract.AUTHORITY, ops)
         if (merged.starred) contactIdOf(all.first())?.let { setStarred(it, true) }
-        return contactIdOf(all.first()) ?: contactIds.first()
+        return MergeResult(contactIdOf(all.first()) ?: contactIds.first(), undo = null)
+    }
+
+    /**
+     * Revierte una unión: la ficha que quedó vuelve a su contenido y los borrados se crean de
+     * nuevo con sus datos (con otro id: lo que otras apps guardaron en ellos no se recupera).
+     */
+    fun undoMerge(undo: MergeUndo): Long {
+        val id = save(EditableContact(undo.keepRaw, undo.account, undo.first), photoChanged = true)
+        undo.others.forEach { save(EditableContact(null, undo.account, it), photoChanged = it.photo != null) }
+        return id
     }
 
     /** Fichas cuyo SOURCE_ID empieza con [prefix] (sin las ya borradas). */
@@ -585,8 +650,8 @@ class SystemContacts(private val app: android.content.Context) {
     }.conflate()
 
     companion object {
-        /** Tipos que esta app escribe y por lo tanto reemplaza al guardar. */
-        val MANAGED_TYPES = arrayOf(
+        /** Tipos que esta app escribe y por lo tanto reemplaza al guardar (las etiquetas van aparte). */
+        val MANAGED_TYPES = listOf(
             CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE,
             CommonDataKinds.Phone.CONTENT_ITEM_TYPE,
             CommonDataKinds.Email.CONTENT_ITEM_TYPE,
@@ -596,8 +661,11 @@ class SystemContacts(private val app: android.content.Context) {
             CommonDataKinds.Organization.CONTENT_ITEM_TYPE,
             CommonDataKinds.Note.CONTENT_ITEM_TYPE,
             CommonDataKinds.Website.CONTENT_ITEM_TYPE,
-            CommonDataKinds.GroupMembership.CONTENT_ITEM_TYPE,
         )
+
+        /** Etiquetas que maneja el usuario: fuera las del sistema ("Mis contactos") y las de solo lectura. */
+        private val EDITABLE_GROUP =
+            "${Groups.DELETED} = 0 AND ${Groups.GROUP_IS_READ_ONLY} = 0 AND ${Groups.AUTO_ADD} = 0 AND ${Groups.SYSTEM_ID} IS NULL"
 
         /** Cuentas "del teléfono" de algunos fabricantes. */
         val KNOWN_LOCAL_TYPES = setOf(

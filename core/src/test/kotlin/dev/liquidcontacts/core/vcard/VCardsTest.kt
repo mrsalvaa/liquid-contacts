@@ -9,7 +9,6 @@ import dev.liquidcontacts.core.model.LabelKind
 import dev.liquidcontacts.core.model.Name
 import dev.liquidcontacts.core.model.Phone
 import dev.liquidcontacts.core.model.PostalAddress
-import ezvcard.VCardVersion
 import java.util.Base64
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -204,12 +203,12 @@ class VCardsTest {
     )
 
     @Test
-    fun idaYVuelta30() = roundTrip(VCardVersion.V3_0)
+    fun idaYVuelta30() = roundTrip(VCardFormat.V3)
 
     @Test
-    fun idaYVuelta40() = roundTrip(VCardVersion.V4_0)
+    fun idaYVuelta40() = roundTrip(VCardFormat.V4)
 
-    private fun roundTrip(version: VCardVersion) {
+    private fun roundTrip(version: VCardFormat) {
         val text = VCards.write(listOf(full), version)
         assertFalse("PRODID" in text, "no tiene que identificar a la app")
         val back = ok(text).contacts.single()
@@ -245,5 +244,19 @@ class VCardsTest {
     fun exportarVarios() {
         val text = VCards.write(listOf(Contact(name = Name(display = "Ana")), Contact(name = Name(display = "Beto"))))
         assertEquals(listOf("Ana", "Beto"), ok(text).contacts.map { it.displayName })
+    }
+
+    @Test
+    fun loQueEntraSeLimpia() {
+        val c = ok(
+            "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Ana\u202E Falsa\r\nTEL:sin digitos\r\nTEL:011 4321-0000\r\n" +
+                "EMAIL:no es un email\r\nEMAIL:ana@example.com\r\nURL:javascript:alert(1)\r\nURL:https://example.com\r\n" +
+                "NOTE:${"x".repeat(30_000)}\r\nEND:VCARD\r\n",
+        ).contacts.single()
+        assertEquals("Ana Falsa", c.displayName)
+        assertEquals(listOf("011 4321-0000"), c.phones.map { it.number })
+        assertEquals(listOf("ana@example.com"), c.emails.map { it.address })
+        assertEquals(listOf("https://example.com"), c.websites)
+        assertEquals(20_000, c.note!!.length)
     }
 }

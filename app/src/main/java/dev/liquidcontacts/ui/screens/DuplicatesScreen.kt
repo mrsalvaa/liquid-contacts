@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package dev.liquidcontacts.ui.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -18,8 +20,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -33,7 +37,11 @@ import dev.liquidcontacts.core.model.Contact
 import dev.liquidcontacts.core.model.Email
 import dev.liquidcontacts.core.model.Name
 import dev.liquidcontacts.core.model.Phone
+import dev.liquidcontacts.core.vcard.VCardFormat
 import dev.liquidcontacts.data.Repo
+import dev.liquidcontacts.data.VcfFiles
+import dev.liquidcontacts.ui.components.LocalUndo
+import dev.liquidcontacts.ui.components.UndoSpec
 import dev.liquidcontacts.ui.components.ContactRow
 import dev.liquidcontacts.ui.glass.DialogSpec
 import dev.liquidcontacts.ui.glass.GlassButton
@@ -42,9 +50,11 @@ import dev.liquidcontacts.ui.glass.GlassSwitch
 import dev.liquidcontacts.ui.glass.LocalDialog
 import dev.liquidcontacts.ui.glass.LocalGlass
 import dev.liquidcontacts.ui.glass.SectionLabel
+import dev.liquidcontacts.ui.glass.SettingRow
 import dev.liquidcontacts.util.plural
 import dev.liquidcontacts.util.str
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
@@ -115,16 +125,79 @@ private fun reason(r: DuplicateReason): String = str(
 @Composable
 fun MergeScreen(contactIds: List<Long>, preselected: Boolean, padding: PaddingValues, onBack: () -> Unit) {
     val p = LocalGlass.current
+    val context = LocalContext.current
     val dialog = LocalDialog.current
     val toast = LocalToast.current
+    val undo = LocalUndo.current
+    val scope = rememberCoroutineScope()
     val numbers by Repo.numbers.collectAsStateWithLifecycle()
     var contacts by remember { mutableStateOf<List<Contact>?>(null) }
     var chosen by remember { mutableStateOf(if (preselected) contactIds.toSet() else emptySet()) }
     var merging by remember { mutableStateOf(false) }
-    LaunchedEffect(contactIds) { contacts = withContext(Dispatchers.IO) { contactIds.mapNotNull { Repo.contacts.load(it) } } }
+    var backup by remember { mutableStateOf(false) }
+    var deletes by remember { mutableStateOf(true) }
+    LaunchedEffect(contactIds) { contacts = withContext(Dispatchers.IO) { contactIds.mapNotNull { Repo.contacts.loadFull(it) } } }
+    LaunchedEffect(chosen) {
+        if (chosen.size >= 2) deletes = withContext(Dispatchers.IO) { Repo.contacts.mergeDeletes(chosen.toList()) }
+    }
     val list = contacts ?: return
     val selected = list.filter { it.id in chosen }
     val preview = remember(selected, numbers) { if (selected.size >= 2) Duplicates(numbers).merge(selected) else null }
+
+    fun merge(ids: List<Long>, merged: Contact) {
+        merging = true
+        Repo.launch {
+            val result = runCatching { Repo.contacts.merge(ids, merged) }.getOrNull()
+            withContext(Dispatchers.Main) {
+                merging = false
+                when {
+                    result == null -> toast(str(R.string.merge_failed))
+                    result.undo != null -> {
+                        val copy = result.undo!!
+                        undo(
+                            UndoSpec(str(R.string.merged), str(R.string.undo)) {
+                                Repo.launch {
+                                    val ok = runCatching { Repo.contacts.undoMerge(copy) }.isSuccess
+                                    withContext(Dispatchers.Main) { toast(str(if (ok) R.string.merge_undone else R.string.merge_undo_failed)) }
+                                }
+                            },
+                        )
+                        onBack()
+                    }
+                    else -> {
+                        toast(str(R.string.merged))
+                        onBack()
+                    }
+                }
+            }
+        }
+    }
+    fun confirm() {
+        val ids = selected.mapNotNull { it.id }
+        val merged = preview ?: return
+        dialog(
+            DialogSpec(plural(R.plurals.merge_confirm_title, ids.size)) { dismiss ->
+                Text(str(if (deletes) R.string.merge_confirm_deletes else R.string.merge_confirm_links), fontSize = 15.sp, color = p.contentSecondary)
+                Spacer(Modifier.height(16.dp))
+                GlassButton(str(R.string.merge), {
+                    dismiss()
+                    merge(ids, merged)
+                }, Modifier.fillMaxWidth(), prominent = true)
+                Spacer(Modifier.height(8.dp))
+                GlassButton(str(R.string.cancel), dismiss, Modifier.fillMaxWidth())
+            },
+        )
+    }
+    // Con respaldo: primero el archivo; si no se pudo guardar, no se une nada.
+    val saveBackup = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(VcfFiles.MIME)) { uri ->
+        if (uri != null) {
+            scope.launch {
+                val ok = withContext(Dispatchers.IO) { VcfFiles.write(context, uri, selected.asSequence(), VCardFormat.V3, includePhoto = true) }
+                toast(str(if (ok) R.string.backup_saved else R.string.backup_failed))
+                if (ok) confirm()
+            }
+        }
+    }
 
     Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp).verticalScroll(rememberScrollState())) {
         BackTitle(str(R.string.merge_title), onBack)
@@ -158,33 +231,18 @@ fun MergeScreen(contactIds: List<Long>, preselected: Boolean, padding: PaddingVa
                 PreviewLines(str(R.string.note), listOfNotNull(preview.note))
             }
         }
+        Spacer(Modifier.height(12.dp))
+        GlassCard {
+            SettingRow(
+                str(R.string.merge_backup),
+                subtitle = str(R.string.merge_backup_hint),
+                trailing = { GlassSwitch(backup, { backup = it }) },
+            )
+        }
         Spacer(Modifier.height(16.dp))
         GlassButton(
             if (selected.size >= 2) plural(R.plurals.merge_n, selected.size) else str(R.string.merge),
-            {
-                val ids = selected.mapNotNull { it.id }
-                val merged = preview ?: return@GlassButton
-                dialog(
-                    DialogSpec(plural(R.plurals.merge_confirm_title, ids.size)) { dismiss ->
-                        Text(str(R.string.merge_confirm_text), fontSize = 15.sp, color = p.contentSecondary)
-                        Spacer(Modifier.height(16.dp))
-                        GlassButton(str(R.string.merge), {
-                            dismiss()
-                            merging = true
-                            Repo.launch {
-                                val ok = runCatching { Repo.contacts.merge(ids, merged) }.isSuccess
-                                withContext(Dispatchers.Main) {
-                                    merging = false
-                                    toast(str(if (ok) R.string.merged else R.string.merge_failed))
-                                    if (ok) onBack()
-                                }
-                            }
-                        }, Modifier.fillMaxWidth(), prominent = true)
-                        Spacer(Modifier.height(8.dp))
-                        GlassButton(str(R.string.cancel), dismiss, Modifier.fillMaxWidth())
-                    },
-                )
-            },
+            { if (backup) saveBackup.launch(VcfFiles.backupName()) else confirm() },
             Modifier.fillMaxWidth(),
             prominent = true,
             enabled = selected.size >= 2 && !merging,

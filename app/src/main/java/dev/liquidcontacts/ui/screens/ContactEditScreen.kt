@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -91,7 +90,8 @@ import java.time.YearMonth
 
 sealed interface EditTarget {
     data object New : EditTarget
-    data class Existing(val contactId: Long) : EditTarget
+    /** [extra]: datos que otra app pidió sumar al formulario; nada se guarda sin tocar guardar. */
+    data class Existing(val contactId: Long, val extra: Contact? = null) : EditTarget
 
     /** Contacto nuevo con datos ya cargados (p. ej. desde otra app). */
     data class Prefilled(val contact: Contact) : EditTarget
@@ -116,17 +116,22 @@ fun ContactEditScreen(target: EditTarget, padding: PaddingValues, onBack: () -> 
     var photoChanged by remember { mutableStateOf(false) }
     var moreName by remember { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
+    // Fichas del contacto (una por cuenta, en general) y cuál se está editando.
+    var fichas by remember { mutableStateOf<List<Pair<Long, ContactAccount>>>(emptyList()) }
+    var rawChoice by remember { mutableStateOf<Long?>(null) }
 
-    LaunchedEffect(target) {
+    LaunchedEffect(target, rawChoice) {
         withContext(Dispatchers.IO) {
             val loc = Repo.contacts.localAccount()
             local = loc
             accounts = (listOf(loc) + Repo.contacts.accounts()).distinct()
             val preferred = Stores.settings.value.newContactAccount.takeIf { it.isNotEmpty() }?.let(ContactAccount::fromId)
             when (target) {
-                is EditTarget.Existing -> Repo.contacts.loadForEdit(target.contactId, preferred)?.let {
+                is EditTarget.Existing -> Repo.contacts.loadForEdit(target.contactId, preferred, rawChoice)?.let {
+                    fichas = Repo.contacts.rawContactIds(target.contactId)
                     original = it
-                    draft = it.contact
+                    draft = target.extra?.let { extra -> it.contact.plusExtra(extra) } ?: it.contact
+                    photoChanged = false
                     account = it.account
                     moreName = listOf(it.contact.name.prefix, it.contact.name.middle, it.contact.name.suffix, it.contact.name.phoneticGiven, it.contact.name.phoneticFamily)
                         .any { s -> !s.isNullOrBlank() }
@@ -198,7 +203,8 @@ fun ContactEditScreen(target: EditTarget, padding: PaddingValues, onBack: () -> 
     }
 
     Column(
-        Modifier.fillMaxSize().padding(padding).imePadding().padding(horizontal = 16.dp).verticalScroll(rememberScrollState()),
+        // [padding] ya incluye el teclado (safeDrawing): imePadding acá lo descontaría dos veces.
+        Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp).verticalScroll(rememberScrollState()),
     ) {
         BackTitle(
             str(if (original == null) R.string.new_contact else R.string.edit_contact),
@@ -231,8 +237,34 @@ fun ContactEditScreen(target: EditTarget, padding: PaddingValues, onBack: () -> 
             }
         }
 
-        // Cuenta (solo al crear)
-        if (original == null && accounts.size > 1) {
+        // Un contacto armado con varias fichas: cada una dice de qué cuenta es y se edita por separado.
+        if (fichas.size > 1) {
+            SectionLabel(str(R.string.fichas_title))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                fichas.forEachIndexed { i, (raw, a) ->
+                    val repeated = fichas.count { it.second == a } > 1
+                    val label = Labels.account(a, local) + if (repeated) " (${i + 1})" else ""
+                    GlassChip(label, raw == original?.rawContactId, {
+                        if (raw != original?.rawContactId) {
+                            if (dirty) {
+                                dialog(
+                                    DialogSpec(str(R.string.discard_title)) { dismiss ->
+                                        Text(str(R.string.discard_text), fontSize = 15.sp, color = p.contentSecondary)
+                                        Spacer(Modifier.height(16.dp))
+                                        GlassButton(str(R.string.discard), { dismiss(); rawChoice = raw }, Modifier.fillMaxWidth(), danger = true)
+                                        Spacer(Modifier.height(8.dp))
+                                        GlassButton(str(R.string.keep_editing), dismiss, Modifier.fillMaxWidth())
+                                    },
+                                )
+                            } else {
+                                rawChoice = raw
+                            }
+                        }
+                    })
+                }
+            }
+            Text(str(R.string.fichas_hint), Modifier.padding(horizontal = 8.dp, vertical = 6.dp), fontSize = 13.sp, color = p.contentSecondary)
+        } else if (original == null && accounts.size > 1) {
             SectionLabel(str(R.string.save_in))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 accounts.forEach { a -> GlassChip(Labels.account(a, local), a == account, { account = a }) }
@@ -511,6 +543,18 @@ private fun LabelsEditor(selected: Set<String>, account: ContactAccount?, onChan
 }
 
 // ---------------------------------------------------------------- utilidades
+
+/** Suma al contacto lo que pidió otra app: números y emails nuevos; el resto, solo si está vacío. */
+private fun Contact.plusExtra(e: Contact): Contact = copy(
+    name = if (name.shown.isBlank()) e.name else name,
+    organization = organization ?: e.organization,
+    jobTitle = jobTitle ?: e.jobTitle,
+    phones = phones + e.phones.filter { n -> phones.none { it.number == n.number } },
+    emails = emails + e.emails.filter { m -> emails.none { it.address.equals(m.address, ignoreCase = true) } },
+    addresses = addresses + e.addresses,
+    websites = (websites + e.websites).distinct(),
+    note = note ?: e.note,
+)
 
 private fun <T> List<T>.replaceAt(i: Int, v: T): List<T> = toMutableList().also { it[i] = v }
 private fun <T> List<T>.removeAt(i: Int): List<T> = toMutableList().also { it.removeAt(i) }

@@ -66,6 +66,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.liquidcontacts.contacts.ContactGroup
 import dev.liquidcontacts.data.Repo
 import dev.liquidcontacts.data.Stores
+import dev.liquidcontacts.ui.components.LocalUndo
+import dev.liquidcontacts.ui.components.UndoHost
+import dev.liquidcontacts.ui.components.UndoSpec
 import dev.liquidcontacts.ui.glass.ActionSheetHost
 import dev.liquidcontacts.ui.glass.DialogHost
 import dev.liquidcontacts.ui.glass.DialogSpec
@@ -146,6 +149,7 @@ private fun App(animated: Boolean, flatNav: Boolean) {
     var prompt by remember { mutableStateOf<PromptSpec?>(null) }
     var dialog by remember { mutableStateOf<DialogSpec?>(null) }
     var toast by remember { mutableStateOf<Pair<String, Long>?>(null) }
+    var undo by remember { mutableStateOf<UndoSpec?>(null) }
     val reduced = LocalReducedMotion.current
 
     fun push(o: Overlay) {
@@ -189,6 +193,7 @@ private fun App(animated: Boolean, flatNav: Boolean) {
         LocalPrompt provides { prompt = it },
         LocalDialog provides { dialog = it },
         LocalToast provides { toast = it to System.nanoTime() },
+        LocalUndo provides { undo = it },
     ) {
         GlassRoot(
             animated = animated,
@@ -227,6 +232,7 @@ private fun App(animated: Boolean, flatNav: Boolean) {
                     }
                 }
                 ToastHost(toast) { toast = null }
+                UndoHost(undo) { undo = null }
                 ActionSheetHost(sheet) { sheet = null }
                 PromptHost(prompt) { prompt = null }
                 DialogHost(dialog) { dialog = null }

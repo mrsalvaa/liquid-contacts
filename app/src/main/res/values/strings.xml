@@ -135,7 +135,6 @@
     <string name="merge_contacts">Contacts</string>
     <string name="merge_result">Result</string>
     <string name="merge_pick_two">Turn on at least two contacts to see the result.</string>
-    <string name="merge_confirm_text">Everything is kept without repeating data. If the contacts are in the same account they become one; if they are in different accounts they are linked and each account keeps its copy.</string>
     <string name="merged">Contacts merged</string>
     <string name="merge_failed">Could not merge the contacts</string>
     <string name="numbers">Phone numbers</string>
@@ -154,6 +153,17 @@
     <string name="dev_generate">Create 520 test contacts</string>
     <string name="dev_clear">Delete test contacts</string>
     <string name="dev_working">Creating test contacts…</string>
+    <string name="undo">Undo</string>
+    <string name="merge_undone">Merge undone</string>
+    <string name="merge_undo_failed">Could not undo the merge</string>
+    <string name="merge_confirm_deletes">The contacts become one and the others are deleted. You will have a few seconds to undo; after that it cannot be reverted.</string>
+    <string name="merge_confirm_links">They are in different accounts: they are shown as one contact and each account keeps its copy. Nothing is deleted.</string>
+    <string name="merge_backup">Save a backup of the originals (.vcf)</string>
+    <string name="merge_backup_hint">Before merging you choose where to save it. The file is not encrypted.</string>
+    <string name="backup_saved">Backup saved</string>
+    <string name="backup_failed">Could not save the backup: nothing was merged</string>
+    <string name="fichas_title">Cards of this contact, by account</string>
+    <string name="fichas_hint">Android shows them as one contact. Each card is saved in its own account: choose which one to edit.</string>
     <plurals name="contacts_count">
         <item quantity="one">%d contact</item>
         <item quantity="other">%d contacts</item>

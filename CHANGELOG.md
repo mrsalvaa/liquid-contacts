@@ -13,4 +13,5 @@
 - Labels: create, rename and delete.
 - Duplicates by confidence (same name, or a shared number or email with different names) with a merge preview where any contact can be left out; nothing is merged without confirmation.
 - Default country (from the SIM the first time) and default area code, with a notice in the list when numbers lack an area code.
+- Merging contacts that are in the same account can be undone for a few seconds, with an optional .vcf backup of the originals first; contacts with cards in several accounts show the account of each card when editing.
 - Appearance settings shared with the rest of the suite, and five app icons.

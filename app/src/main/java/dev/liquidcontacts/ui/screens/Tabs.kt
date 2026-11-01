@@ -36,6 +36,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -121,6 +122,12 @@ fun ContactsTab(ctx: TabContext) {
     var query by rememberSaveable { mutableStateOf("") }
     val list = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    val focus = LocalFocusManager.current
+    // Al irse de la lista se cierra el teclado de la búsqueda.
+    val open: (Long) -> Unit = { id ->
+        focus.clearFocus()
+        ctx.onContact(id)
+    }
 
     // Resultados de la búsqueda (en segundo plano: con miles de contactos se nota).
     var results by remember { mutableStateOf<List<Row>?>(null) }
@@ -213,7 +220,7 @@ fun ContactsTab(ctx: TabContext) {
                 item(key = r.summary.id, contentType = "row") {
                     ContactRow(
                         r.summary.displayName.ifBlank { str(R.string.no_name) },
-                        { ctx.onContact(r.summary.id) },
+                        { open(r.summary.id) },
                         subtitle = if (results != null) r.summary.phones.firstOrNull()?.let(numbers::format) else null,
                         photoUri = r.summary.photoUri,
                         starred = r.summary.starred,
