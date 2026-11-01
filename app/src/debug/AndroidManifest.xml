@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!--
+    Solo debug y profile: recibe "crear/borrar la agenda de prueba" desde adb, para medir el
+    rendimiento sin tener que mirar la pantalla (que mostraría los contactos reales del celu).
+    Protegido con DUMP: lo tiene el shell de adb y ninguna app instalada por el usuario.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <receiver
+            android:name=".DevReceiver"
+            android:exported="true"
+            android:permission="android.permission.DUMP">
+            <intent-filter>
+                <action android:name="dev.liquidcontacts.DEV_GENERATE" />
+                <action android:name="dev.liquidcontacts.DEV_CLEAR" />
+                <action android:name="dev.liquidcontacts.DEV_STYLE" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

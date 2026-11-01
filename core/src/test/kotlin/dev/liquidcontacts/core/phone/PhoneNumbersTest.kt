@@ -250,5 +250,8 @@ class PhoneNumbersTest {
         // Con el código de área por defecto ya se completan.
         assertFalse(ar11.missingAreaCode("15 2345-6789"))
         assertFalse(cba.missingAreaCode("15 234-5678"))
+        // Fuera de Argentina el ajuste no existe: nunca se cuentan.
+        assertFalse(PhoneNumbers("US").missingAreaCode("0351 15 234-5678"))
+        assertFalse(PhoneNumbers("ES").missingAreaCode("15 2345-6789"))
     }
 }

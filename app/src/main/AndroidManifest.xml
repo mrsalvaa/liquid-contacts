@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!--
+        Leer y escribir la agenda del sistema: la app es una agenda. Se piden al abrir, después de
+        una pantalla que explica para qué.
+    -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <uses-permission android:name="android.permission.WRITE_CONTACTS" />
+
+    <!--
+        Fuera lo que agregan las librerías y la app no usa, para que el manifest final solo tenga
+        componentes propios:
+        - el permiso interno de androidx.core para receptores dinámicos (no registramos ninguno);
+        - androidx.startup, que arrancaría emoji2 (puede pedir fuentes a Google Play Services),
+          lifecycle-process y profileinstaller;
+        - el receptor de profileinstaller (herramientas de desarrollo).
+    -->
+    <permission
+        android:name="${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+        tools:node="remove" />
+    <uses-permission
+        android:name="${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+        tools:node="remove" />
+
+    <!-- Sin backup ni transferencia de datos a otro dispositivo (ver data_extraction_rules). -->
+    <application
+        android:name=".ContactsApp"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.LiquidContacts">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:windowSoftInputMode="adjustResize" />
+
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            tools:ignore="MissingClass"
+            tools:node="remove" />
+        <receiver
+            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+            tools:ignore="MissingClass"
+            tools:node="remove" />
+
+        <!-- Un alias por ícono de la app: solo uno está activo (ver util/AppIcons.kt). -->
+        <activity-alias
+            android:name=".IconLiquid"
+            android:enabled="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.APP_CONTACTS" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".IconMaterial"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_material"
+            android:roundIcon="@mipmap/ic_launcher_material"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.APP_CONTACTS" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".IconSamsung"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_samsung"
+            android:roundIcon="@mipmap/ic_launcher_samsung"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.APP_CONTACTS" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".IconIphone"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_iphone"
+            android:roundIcon="@mipmap/ic_launcher_iphone"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.APP_CONTACTS" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".IconMotorola"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_motorola"
+            android:roundIcon="@mipmap/ic_launcher_motorola"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.APP_CONTACTS" />
+            </intent-filter>
+        </activity-alias>
+    </application>
+</manifest>

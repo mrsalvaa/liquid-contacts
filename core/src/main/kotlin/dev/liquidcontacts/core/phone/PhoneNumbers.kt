@@ -37,6 +37,9 @@ class PhoneNumbers(
     private val countryCode = util.getCountryCodeForRegion(region)
     private val area: String? = defaultAreaCode?.filter(Char::isDigit)?.trimStart('0')?.takeIf { it.length in 2..4 }
 
+    /** Si el código de área por defecto se puede usar con este país (por ahora, solo Argentina). */
+    val supportsAreaCode: Boolean get() = region == "AR"
+
     fun key(raw: String): PhoneKey {
         val digits = raw.filter(Char::isDigit)
         val parsed = parse(raw) ?: completeWithArea(raw)
@@ -68,9 +71,11 @@ class PhoneNumbers(
     /**
      * Si parece un número local al que le falta el código de área ("15 2345-6789", "421-0000"):
      * no se pudo completar, no es internacional y tiene entre 6 y 10 dígitos (los códigos cortos
-     * y de marcado no cuentan). Es lo que arregla el ajuste "Código de área por defecto".
+     * y de marcado no cuentan). Es lo que arregla el ajuste "Código de área por defecto", que por
+     * ahora solo existe para Argentina: con otro país, siempre false.
      */
     fun missingAreaCode(raw: String): Boolean {
+        if (!supportsAreaCode) return false
         val text = raw.trim()
         if (text.startsWith("+") || text.startsWith("00") || text.any { it == '*' || it == '#' }) return false
         val digits = text.filter(Char::isDigit)
@@ -131,6 +136,12 @@ class PhoneNumbers(
     }
 
     companion object {
+        /** Países que libphonenumber sabe interpretar (códigos ISO 3166, p. ej. "AR"). */
+        fun regions(): Set<String> = PhoneNumberUtil.getInstance().supportedRegions
+
+        /** Código de llamada de un país ("AR" → 54), o 0 si no se conoce. */
+        fun callingCode(region: String): Int = PhoneNumberUtil.getInstance().getCountryCodeForRegion(region)
+
         /** Dígitos de la coincidencia aproximada: el abonado más corto de Argentina tiene 6, el de Buenos Aires 8. */
         const val TAIL = 8
 

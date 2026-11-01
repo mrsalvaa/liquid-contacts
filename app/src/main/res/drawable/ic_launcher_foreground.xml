@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Ficha de cristal -->
+    <path
+        android:pathData="M40,26h28a12,12 0,0 1,12,12v32a12,12 0,0 1,-12,12h-28a12,12 0,0 1,-12,-12v-32a12,12 0,0 1,12,-12z"
+        android:fillColor="#28FFFFFF"
+        android:strokeColor="#B3FFFFFF"
+        android:strokeWidth="1.2" />
+    <!-- Brillo especular superior -->
+    <path android:pathData="M40,27.2h28a10.8,10.8 0,0 1,10.8,10.8v4h-49.6v-4a10.8,10.8 0,0 1,10.8,-10.8z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="54" android:startY="27" android:endX="54" android:endY="42"
+                android:startColor="#4DFFFFFF" android:endColor="#00FFFFFF" />
+        </aapt:attr>
+    </path>
+    <!-- Persona -->
+    <path android:pathData="M54,36a9,9 0,1 1,0,18a9,9 0,1 1,0,-18z" android:fillColor="#E6FFFFFF" />
+    <path android:pathData="M37,76c0,-10 7.6,-17 17,-17s17,7 17,17z" android:fillColor="#B3FFFFFF" />
+    <!-- Punto de énfasis -->
+    <path android:pathData="M69,35a3,3 0,1 1,0,6a3,3 0,1 1,0,-6z" android:fillColor="#FFF472B6" />
+</vector>
