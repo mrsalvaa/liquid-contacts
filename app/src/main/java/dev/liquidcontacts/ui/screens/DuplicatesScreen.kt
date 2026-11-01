@@ -41,6 +41,7 @@ import dev.liquidcontacts.core.vcard.VCardFormat
 import dev.liquidcontacts.data.Repo
 import dev.liquidcontacts.data.VcfFiles
 import dev.liquidcontacts.ui.components.LocalUndo
+import dev.liquidcontacts.ui.components.SwitchRow
 import dev.liquidcontacts.ui.components.UndoSpec
 import dev.liquidcontacts.ui.components.ContactRow
 import dev.liquidcontacts.ui.glass.DialogSpec
@@ -50,7 +51,6 @@ import dev.liquidcontacts.ui.glass.GlassSwitch
 import dev.liquidcontacts.ui.glass.LocalDialog
 import dev.liquidcontacts.ui.glass.LocalGlass
 import dev.liquidcontacts.ui.glass.SectionLabel
-import dev.liquidcontacts.ui.glass.SettingRow
 import dev.liquidcontacts.util.plural
 import dev.liquidcontacts.util.str
 import kotlinx.coroutines.Dispatchers
@@ -233,11 +233,7 @@ fun MergeScreen(contactIds: List<Long>, preselected: Boolean, padding: PaddingVa
         }
         Spacer(Modifier.height(12.dp))
         GlassCard {
-            SettingRow(
-                str(R.string.merge_backup),
-                subtitle = str(R.string.merge_backup_hint),
-                trailing = { GlassSwitch(backup, { backup = it }) },
-            )
+            SwitchRow(str(R.string.merge_backup), backup, { backup = it }, subtitle = str(R.string.merge_backup_hint))
         }
         Spacer(Modifier.height(16.dp))
         GlassButton(

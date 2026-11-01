@@ -207,6 +207,7 @@
     <string name="pick_postal">Elegí una dirección</string>
     <string name="pick_note">Solo lo que elijas va a la app que lo pidió: no ve el resto de tu agenda.</string>
     <string name="external_invalid">No se pudo abrir ese pedido</string>
+    <string name="remove_item">Quitar: %1$s</string>
     <plurals name="contacts_count">
         <item quantity="one">%d contacto</item>
         <item quantity="many">%d contactos</item>

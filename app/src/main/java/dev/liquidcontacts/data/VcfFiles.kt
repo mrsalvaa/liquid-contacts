@@ -33,7 +33,16 @@ object VcfFiles {
      */
     fun read(context: Context, uri: Uri, limits: VCardLimits = VCardLimits()): VCardImport = runCatching {
         val stream = context.contentResolver.openInputStream(uri) ?: return VCardImport.Invalid
-        val bytes = stream.use { it.readNBytes(limits.maxBytes + 1) }
+        val bytes = stream.use { input ->
+            val out = ByteArrayOutputStream()
+            val chunk = ByteArray(64 * 1024)
+            while (out.size() <= limits.maxBytes) {
+                val n = input.read(chunk)
+                if (n < 0) break
+                out.write(chunk, 0, n)
+            }
+            out.toByteArray()
+        }
         VCards.read(bytes, limits)
     }.getOrDefault(VCardImport.Invalid)
 

@@ -37,13 +37,13 @@ import dev.liquidcontacts.data.Repo
 import dev.liquidcontacts.data.VcfFiles
 import dev.liquidcontacts.ui.components.ContactRow
 import dev.liquidcontacts.ui.components.SearchField
+import dev.liquidcontacts.ui.components.SwitchRow
 import dev.liquidcontacts.ui.glass.GlassButton
 import dev.liquidcontacts.ui.glass.GlassCard
 import dev.liquidcontacts.ui.glass.GlassChip
 import dev.liquidcontacts.ui.glass.GlassSwitch
 import dev.liquidcontacts.ui.glass.LocalGlass
 import dev.liquidcontacts.ui.glass.SectionLabel
-import dev.liquidcontacts.ui.glass.SettingRow
 import dev.liquidcontacts.util.plural
 import dev.liquidcontacts.util.str
 import kotlinx.coroutines.Dispatchers
@@ -135,7 +135,7 @@ fun ExportScreen(padding: PaddingValues, onBack: () -> Unit) {
                             }
                         }
                     }
-                    SettingRow(str(R.string.export_photos), trailing = { GlassSwitch(photos, { photos = it }) })
+                    SwitchRow(str(R.string.export_photos), photos, { photos = it })
                     Text(str(R.string.export_format), Modifier.padding(top = 6.dp), fontSize = 16.sp)
                     ChipRow(VCardFormat.entries, format, { str(if (it == VCardFormat.V3) R.string.export_v3 else R.string.export_v4) }) { format = it }
                     Text(str(R.string.export_warning), Modifier.padding(top = 6.dp), fontSize = 13.sp, color = p.contentSecondary)

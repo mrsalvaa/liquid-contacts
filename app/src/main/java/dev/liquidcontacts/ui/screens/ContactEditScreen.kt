@@ -44,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -63,12 +64,12 @@ import dev.liquidcontacts.core.model.PostalAddress
 import dev.liquidcontacts.data.Repo
 import dev.liquidcontacts.data.Stores
 import dev.liquidcontacts.ui.components.ContactAvatar
+import dev.liquidcontacts.ui.components.SwitchRow
 import dev.liquidcontacts.ui.glass.DialogSpec
 import dev.liquidcontacts.ui.glass.GlassButton
 import dev.liquidcontacts.ui.glass.GlassCard
 import dev.liquidcontacts.ui.glass.GlassChip
 import dev.liquidcontacts.ui.glass.GlassIconButton
-import dev.liquidcontacts.ui.glass.GlassSwitch
 import dev.liquidcontacts.ui.glass.GlassTextField
 import dev.liquidcontacts.ui.glass.LocalActionSheet
 import dev.liquidcontacts.ui.glass.LocalDialog
@@ -403,7 +404,7 @@ fun ContactEditScreen(target: EditTarget, padding: PaddingValues, onBack: () -> 
 
         Spacer(Modifier.height(12.dp))
         GlassCard {
-            SettingRow(str(R.string.favorite), trailing = { GlassSwitch(d.starred, { v -> edit { it.copy(starred = v) } }) })
+            SwitchRow(str(R.string.favorite), d.starred, { v -> edit { it.copy(starred = v) } })
         }
         Spacer(Modifier.height(16.dp))
         GlassButton(str(R.string.save), save, Modifier.fillMaxWidth(), prominent = true, enabled = !saving)
@@ -421,7 +422,16 @@ private fun Field(
     keyboard: KeyboardOptions = KeyboardOptions.Default,
     singleLine: Boolean = true,
 ) {
-    GlassTextField(value, onChange, placeholder, Modifier.padding(vertical = 4.dp), keyboardOptions = keyboard, singleLine = singleLine)
+    // Con texto cargado no se ve la ayuda: TalkBack igual tiene que decir qué campo es. Vacío, la
+    // ayuda ya es el nombre del campo y un rótulo aparte lo repetiría.
+    GlassTextField(
+        value,
+        onChange,
+        placeholder,
+        Modifier.padding(vertical = 4.dp).then(if (value.isEmpty()) Modifier else Modifier.semantics { contentDescription = placeholder }),
+        keyboardOptions = keyboard,
+        singleLine = singleLine,
+    )
 }
 
 /** Un dato con su tipo (chip que abre la lista de tipos) y el botón para sacarlo. */
@@ -431,7 +441,7 @@ private fun ItemRow(kind: String?, onKind: (() -> Unit)?, onRemove: () -> Unit, 
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (kind != null && onKind != null) GlassChip(kind, false, onKind)
             Spacer(Modifier.weight(1f))
-            GlassIconButton(Icons.Rounded.Close, str(R.string.remove), onRemove, size = 48.dp)
+            GlassIconButton(Icons.Rounded.Close, str(R.string.remove_item, kind ?: str(R.string.website)), onRemove, size = 48.dp)
         }
         content()
     }
@@ -440,7 +450,8 @@ private fun ItemRow(kind: String?, onKind: (() -> Unit)?, onRemove: () -> Unit, 
 @Composable
 private fun AddRow(text: String, onClick: () -> Unit) {
     SettingRow(text, onClick = onClick, leading = {
-        GlassIconButton(Icons.Rounded.Add, null, onClick, size = 40.dp)
+        // La fila entera es el botón: el + no es otra parada para TalkBack.
+        GlassIconButton(Icons.Rounded.Add, null, onClick, Modifier.clearAndSetSemantics { }, size = 40.dp)
         Spacer(Modifier.width(12.dp))
     })
 }
@@ -505,7 +516,7 @@ private fun rememberDatePicker(): (ContactEvent, (ContactEvent) -> Unit) -> Unit
                         WheelPicker(thisYear - FIRST_YEAR + 1, year, { year = it }, cyclic = false, width = 96.dp, fontSize = 28, label = { "${FIRST_YEAR + it}" }, typed = { y -> (y - FIRST_YEAR).takeIf { it in 0..thisYear - FIRST_YEAR } })
                     }
                 }
-                SettingRow(str(R.string.with_year), trailing = { GlassSwitch(withYear, { withYear = it }) })
+                SwitchRow(str(R.string.with_year), withYear, { withYear = it })
                 Spacer(Modifier.height(8.dp))
                 GlassButton(str(R.string.done), {
                     val y = if (withYear) FIRST_YEAR + year else null

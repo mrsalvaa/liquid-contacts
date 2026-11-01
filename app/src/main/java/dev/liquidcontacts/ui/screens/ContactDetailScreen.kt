@@ -56,15 +56,14 @@ import dev.liquidcontacts.core.vcard.VCardFormat
 import dev.liquidcontacts.data.Repo
 import dev.liquidcontacts.data.VcfFiles
 import dev.liquidcontacts.ui.components.ContactAvatar
+import dev.liquidcontacts.ui.components.SwitchRow
 import dev.liquidcontacts.ui.glass.DialogSpec
 import dev.liquidcontacts.ui.glass.GlassButton
 import dev.liquidcontacts.ui.glass.GlassCard
 import dev.liquidcontacts.ui.glass.GlassIconButton
-import dev.liquidcontacts.ui.glass.GlassSwitch
 import dev.liquidcontacts.ui.glass.LocalDialog
 import dev.liquidcontacts.ui.glass.LocalGlass
 import dev.liquidcontacts.ui.glass.SectionLabel
-import dev.liquidcontacts.ui.glass.SettingRow
 import dev.liquidcontacts.util.str
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -129,7 +128,7 @@ fun ContactDetailScreen(contactId: Long, padding: PaddingValues, onBack: () -> U
                     dialog(
                         DialogSpec(str(R.string.share_contact)) { dismiss ->
                             var photos by remember { mutableStateOf(true) }
-                            SettingRow(str(R.string.export_photos), trailing = { GlassSwitch(photos, { photos = it }) })
+                            SwitchRow(str(R.string.export_photos), photos, { photos = it })
                             Text(str(R.string.export_warning), fontSize = 13.sp, color = p.contentSecondary)
                             Spacer(Modifier.height(16.dp))
                             GlassButton(str(R.string.share), {

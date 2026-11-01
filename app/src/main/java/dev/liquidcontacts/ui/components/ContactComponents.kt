@@ -70,6 +70,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -83,8 +84,10 @@ import androidx.compose.ui.unit.sp
 import dev.liquidcontacts.core.avatar.Avatars
 import dev.liquidcontacts.ui.glass.ACCENT_HUES
 import dev.liquidcontacts.ui.glass.GlassSurface
+import dev.liquidcontacts.ui.glass.GlassSwitch
 import dev.liquidcontacts.ui.glass.LocalGlass
 import dev.liquidcontacts.ui.glass.muted
+import dev.liquidcontacts.ui.glass.SettingRow
 import dev.liquidcontacts.ui.glass.readableOn
 import dev.liquidcontacts.ui.glass.styled
 import kotlinx.coroutines.Dispatchers
@@ -291,6 +294,10 @@ fun AlphabetIndex(
                         if (has) {
                             contentDescription = jumpLabel(l)
                             role = Role.Button
+                            onClick {
+                                onLetter(l)
+                                true
+                            }
                         }
                     },
                     color = if (has) p.accentFg else p.contentSecondary.copy(alpha = 0.35f),
@@ -470,3 +477,19 @@ fun BoxScope.UndoHost(spec: UndoSpec?, onDone: () -> Unit) {
 }
 
 private const val UNDO_MS = 10_000
+
+// ---------------------------------------------------------------- interruptor con nombre
+
+/**
+ * Fila con interruptor: para TalkBack es una sola cosa ("Con año, interruptor, desactivado"). Con
+ * un SettingRow suelto, el interruptor se anunciaría sin decir qué activa.
+ */
+@Composable
+fun SwitchRow(title: String, checked: Boolean, onChange: (Boolean) -> Unit, modifier: Modifier = Modifier, subtitle: String? = null) {
+    SettingRow(
+        title,
+        modifier.semantics(mergeDescendants = true) { },
+        subtitle = subtitle,
+        trailing = { GlassSwitch(checked, onChange) },
+    )
+}

@@ -207,6 +207,7 @@
     <string name="pick_postal">Choose an address</string>
     <string name="pick_note">Only what you choose goes to the app that asked: it does not see the rest of your contacts.</string>
     <string name="external_invalid">That request could not be opened</string>
+    <string name="remove_item">Remove: %1$s</string>
     <plurals name="contacts_count">
         <item quantity="one">%d contact</item>
         <item quantity="other">%d contacts</item>

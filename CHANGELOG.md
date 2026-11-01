@@ -14,4 +14,7 @@
 - Duplicates by confidence (same name, or a shared number or email with different names) with a merge preview where any contact can be left out; nothing is merged without confirmation.
 - Default country (from the SIM the first time) and default area code, with a notice in the list when numbers lack an area code.
 - Merging contacts that are in the same account can be undone for a few seconds, with an optional .vcf backup of the originals first; contacts with cards in several accounts show the account of each card when editing.
+- Import .vcf files (vCard 2.1, 3.0, 4.0): preview, choice of account, contacts you already have are skipped or merged only if you ask. Size, count and photo limits; a broken file gives a clear message. Photos given as links are never downloaded.
+- Export and share .vcf: all, selected or by label, with or without photos, in vCard 3.0 or 4.0. Sharing uses a temporary permission.
+- Other apps can ask to view, add, edit or pick a contact and open a .vcf. Adding and editing only fill in the form: nothing is saved until you tap save. Picking returns only what you choose.
 - Appearance settings shared with the rest of the suite, and five app icons.

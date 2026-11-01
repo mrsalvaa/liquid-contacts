@@ -25,7 +25,17 @@ Escritos en el estilo de `ui/glass`, para copiar a phone y messages:
 | `AlphabetIndex` | Índice lateral: tocar o arrastrar salta a la letra, con burbuja de cristal siempre armada (solo cambia su opacidad). Si no entran todas las letras, muestra algunas con puntos. |
 | `SearchField` | Píldora de cristal con lupa y botón de borrar de 48 dp. |
 | `NoticeCard` | Aviso discreto dentro de la lista, con acción y cruz para descartar. |
+| `UndoHost` | Píldora de cristal con "Deshacer" (`LocalUndo`). Dura 10 s o lo que pida la accesibilidad del sistema. |
+| `SwitchRow` | Fila con interruptor que TalkBack lee como una sola cosa, diciendo qué activa. |
 
 Regla de las listas largas: filas planas y cristal solo en contenedores (barra, búsqueda, avisos,
 diálogos). Medido en un Samsung a 120 Hz con 520 contactos inventados: de 1,1 a 2,5 % de cuadros
 con tirones al desplazar, según el fondo, sin los modos livianos de Calc.
+
+## Accesibilidad: lo que viene de `ui/glass`
+
+Recorrido con TalkBack en el emulador. Dos cosas salen de los componentes copiados de Calendar y
+no se cambiaron para no tocar sus tokens: `GlassChip` mide 40 dp visibles (Compose extiende su zona
+táctil a 48 dp) y `GlassButton(danger = true)` lleva texto blanco sobre rojo translúcido, con
+contraste bajo en tema claro. Un `GlassTextField` con texto no puede fundir su rótulo: el rótulo y
+el valor son dos paradas de TalkBack.
