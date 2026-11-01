@@ -23,11 +23,18 @@ import ezvcard.property.Anniversary
 import ezvcard.property.Birthday
 import ezvcard.property.Categories
 import ezvcard.property.DateOrTimeProperty
+import ezvcard.property.FormattedName
 import ezvcard.property.Nickname
 import ezvcard.property.Organization
+import ezvcard.property.Note
 import ezvcard.property.Photo
+import ezvcard.property.Revision
 import ezvcard.property.StructuredName
 import ezvcard.property.Telephone
+import ezvcard.property.Title
+import ezvcard.property.Uid
+import ezvcard.property.Url
+import ezvcard.property.VCardProperty
 import ezvcard.util.PartialDate
 import java.nio.ByteBuffer
 import java.nio.charset.CharacterCodingException
@@ -135,6 +142,79 @@ object VCards {
         w.flush()
     }
 
+    // ---------------------------------------------------------------- ida y vuelta con el servidor
+
+    /** El contacto de una vCard de una sola tarjeta (por ejemplo, del servidor). Null si no se entiende. */
+    fun contactOf(text: String): Contact? = parseOne(text)?.let { toContact(it, VCardLimits()).first }
+
+    fun uidOf(text: String): String? = parseOne(text)?.uid?.value?.takeIf { it.isNotBlank() }
+
+    /**
+     * La vCard sin las fotos que trae adentro, para guardarla como referencia sin ocupar lugar.
+     * Una foto que viene como enlace se conserva (se vuelve a subir tal cual, nunca se descarga).
+     */
+    fun withoutEmbeddedPhoto(text: String): String? {
+        val card = parseOne(text) ?: return null
+        card.photos.filter { it.data != null }.forEach { card.removeProperty(it) }
+        return writeCard(card)
+    }
+
+    /**
+     * La vCard para subir después de editar: parte de [original] (la del servidor) y reescribe solo
+     * lo que cambió. Lo que la app no modela (propiedades X-, IMPP, RELATED, GEO, un ORG de varios
+     * niveles, parámetros...) vuelve al servidor tal como vino, igual que lo modelado que no se tocó.
+     */
+    fun update(original: String?, c: Contact, uid: String): String {
+        val card = original?.let(::parseOne) ?: VCard(VCardVersion.V3_0)
+        val version = if (card.version == VCardVersion.V4_0) VCardVersion.V4_0 else VCardVersion.V3_0
+        val before = toContact(card, VCardLimits()).first ?: Contact()
+        val firstFree = (card.properties.mapNotNull { Regex("(?i)^item(\\d+)$").find(it.group.orEmpty())?.groupValues?.get(1)?.toIntOrNull() }.maxOrNull() ?: 0) + 1
+        val fresh = toVCard(c, version, includePhoto = true, firstItem = firstFree)
+
+        fun replace(vararg types: Class<out VCardProperty>, extended: List<String> = emptyList()) {
+            // Las etiquetas propias de lo que se reemplaza se van con ello.
+            val old = card.properties.filter { p -> types.any { it.isInstance(p) } } + extended.flatMap { card.getExtendedProperties(it) }
+            val groups = old.mapNotNull { it.group?.lowercase() }.toSet()
+            old.forEach { card.removeProperty(it) }
+            card.getExtendedProperties("X-ABLABEL").filter { it.group?.lowercase() in groups }.toList().forEach { card.removeProperty(it) }
+            val added = fresh.properties.filter { p -> types.any { it.isInstance(p) } } + extended.flatMap { fresh.getExtendedProperties(it) }
+            added.forEach { card.addProperty(it) }
+            val newGroups = added.mapNotNull { it.group?.lowercase() }.toSet()
+            fresh.getExtendedProperties("X-ABLABEL").filter { it.group?.lowercase() in newGroups }.forEach { card.addProperty(it) }
+        }
+        fun t(s: String?) = s?.trim().orEmpty()
+        if (before.name.shown != c.name.shown) replace(FormattedName::class.java, StructuredName::class.java)
+        if (t(before.nickname) != t(c.nickname)) replace(Nickname::class.java)
+        if (t(before.organization) != t(c.organization)) replace(Organization::class.java)
+        if (t(before.jobTitle) != t(c.jobTitle)) replace(Title::class.java)
+        if (before.phones.map { Triple(it.number, it.kind, it.label) } != c.phones.map { Triple(it.number, it.kind, it.label) }) replace(Telephone::class.java)
+        if (before.emails.map { Triple(it.address.lowercase(), it.kind, it.label) } != c.emails.map { Triple(it.address.lowercase(), it.kind, it.label) }) replace(ezvcard.property.Email::class.java)
+        if (before.addresses.map { Triple(it.formatted, it.kind, it.label) } != c.addresses.map { Triple(it.formatted, it.kind, it.label) }) replace(Address::class.java)
+        if (before.events.toSet() != c.events.toSet()) replace(Birthday::class.java, Anniversary::class.java, extended = listOf("X-ABDATE"))
+        if (before.websites != c.websites) replace(Url::class.java)
+        if (t(before.note) != t(c.note)) replace(Note::class.java)
+        if (before.groups != c.groups) replace(Categories::class.java)
+        // La foto no se guarda en la referencia: si hay en el celu, va esa; un enlace queda si no hay.
+        card.photos.filter { it.data != null || c.photo != null }.toList().forEach { card.removeProperty(it) }
+        fresh.photos.forEach { card.addProperty(it) }
+        if (card.uid == null) card.uid = Uid(uid)
+        card.revision = Revision(java.time.Instant.now())
+        card.version = version
+        return writeCard(card)
+    }
+
+    private fun parseOne(text: String): VCard? = runCatching { VCardReader(text).use { it.readNext() } }.getOrNull()
+
+    private fun writeCard(card: VCard): String {
+        val out = StringWriter()
+        val version = if (card.version == VCardVersion.V4_0) VCardVersion.V4_0 else VCardVersion.V3_0
+        val w = VCardWriter(out, version)
+        w.isAddProdId = false
+        w.write(card)
+        w.flush()
+        return out.toString()
+    }
+
     // ---------------------------------------------------------------- vCard → Contact
 
     private fun toContact(card: VCard, limits: VCardLimits): Pair<Contact?, Int> {
@@ -150,13 +230,18 @@ object VCards {
         )
         val phones = card.telephoneNumbers.mapNotNull { t ->
             val number = Clean.phone(t.text ?: t.uri?.number) ?: return@mapNotNull null
-            Phone(number, phoneKind(t.types), primary = t.types.contains(TelephoneType.PREF) || t.pref == 1)
+            val custom = customLabel(card, t.group)
+            Phone(number, if (custom != null) LabelKind.CUSTOM else phoneKind(t.types), custom, t.types.contains(TelephoneType.PREF) || t.pref == 1)
         }
         val emails = card.emails.mapNotNull { e ->
             val address = Clean.email(e.value) ?: return@mapNotNull null
-            Email(address, emailKind(e.types), primary = e.types.contains(EmailType.PREF) || e.pref == 1)
+            val custom = customLabel(card, e.group)
+            Email(address, if (custom != null) LabelKind.CUSTOM else emailKind(e.types), custom, e.types.contains(EmailType.PREF) || e.pref == 1)
         }
-        val addresses = card.addresses.mapNotNull { a -> toAddress(a).takeIf { it.formatted.isNotBlank() } }
+        val addresses = card.addresses.mapNotNull { a ->
+            val custom = customLabel(card, a.group)
+            toAddress(a).let { if (custom != null) it.copy(kind = LabelKind.CUSTOM, label = custom) else it }.takeIf { it.formatted.isNotBlank() }
+        }
         val events = buildList {
             card.birthdays.forEach { b -> toEvent(b, EventKind.BIRTHDAY)?.let(::add) }
             card.anniversaries.forEach { a -> toEvent(a, EventKind.ANNIVERSARY)?.let(::add) }
@@ -202,6 +287,13 @@ object VCards {
         // Una tarjeta sin nada que la identifique no se importa.
         val empty = contact.displayName.isBlank() && photo == null
         return (if (empty) null else contact) to dropped
+    }
+
+    /** Etiqueta propia al estilo Apple (itemN.TEL + itemN.X-ABLabel); las predefinidas _$!<Home>!$_ no cuentan. */
+    private fun customLabel(card: VCard, group: String?): String? {
+        if (group == null) return null
+        val text = card.getExtendedProperties("X-ABLABEL").firstOrNull { it.group.equals(group, ignoreCase = true) }?.value ?: return null
+        return if (text.startsWith("_\$!<")) null else Clean.line(text)
     }
 
     private fun toAddress(a: Address): PostalAddress = PostalAddress(
@@ -266,7 +358,14 @@ object VCards {
 
     // ---------------------------------------------------------------- Contact → vCard
 
-    private fun toVCard(c: Contact, version: VCardVersion, includePhoto: Boolean): VCard = VCard().apply {
+    private fun toVCard(c: Contact, version: VCardVersion, includePhoto: Boolean, firstItem: Int = 1): VCard = VCard().apply {
+        var item = firstItem - 1
+        fun labelGroup(label: String?): String? {
+            if (label.isNullOrBlank()) return null
+            val group = "item${++item}"
+            addExtendedProperty("X-ABLabel", label).group = group
+            return group
+        }
         val n = c.name
         setFormattedName(c.displayName)
         structuredName = StructuredName().apply {
@@ -289,6 +388,10 @@ object VCards {
                     LabelKind.FAX_HOME -> { types.add(TelephoneType.FAX); types.add(TelephoneType.HOME) }
                     LabelKind.PAGER -> types.add(TelephoneType.PAGER)
                     LabelKind.MAIN -> types.add(TelephoneType.get("MAIN"))
+                    LabelKind.CUSTOM -> {
+                        types.add(TelephoneType.VOICE)
+                        group = labelGroup(p.label)
+                    }
                     else -> types.add(TelephoneType.VOICE)
                 }
                 if (p.primary) {
@@ -297,13 +400,14 @@ object VCards {
             })
         }
         c.emails.forEach { e ->
-            addEmail(e.address, *listOfNotNull(
+            val mail = addEmail(e.address, *listOfNotNull(
                 when (e.kind) {
                     LabelKind.HOME -> EmailType.HOME
                     LabelKind.WORK -> EmailType.WORK
                     else -> null
                 },
             ).toTypedArray())
+            if (e.kind == LabelKind.CUSTOM) mail.group = labelGroup(e.label)
         }
         c.addresses.forEach { a ->
             addAddress(Address().apply {
@@ -315,11 +419,11 @@ object VCards {
                 when (a.kind) {
                     LabelKind.HOME -> types.add(AddressType.HOME)
                     LabelKind.WORK -> types.add(AddressType.WORK)
+                    LabelKind.CUSTOM -> group = labelGroup(a.label)
                     else -> Unit
                 }
             })
         }
-        var item = 0
         c.events.forEach { e ->
             when (e.kind) {
                 EventKind.BIRTHDAY -> birthdays.add(dateProperty(e, version, ::Birthday, ::Birthday))
