@@ -186,6 +186,21 @@
     <string name="import_action_skip">Skip</string>
     <string name="import_action_merge">Merge</string>
     <string name="import_merge_with">Merge with %1$s</string>
+    <string name="share">Share</string>
+    <string name="share_contact">Share contact</string>
+    <string name="export_title">Export contacts</string>
+    <string name="export_which">Which contacts</string>
+    <string name="export_all">All</string>
+    <string name="export_label">By label</string>
+    <string name="export_selected">Selected</string>
+    <string name="export_photos">Include photos</string>
+    <string name="export_format">Format</string>
+    <string name="export_v3">vCard 3.0 (most compatible)</string>
+    <string name="export_v4">vCard 4.0</string>
+    <string name="export_warning">The file is not encrypted: anyone who has it can read these contacts.</string>
+    <string name="export_save">Save to a file</string>
+    <string name="export_pick">Choose contacts</string>
+    <string name="export_failed">Could not create the file</string>
     <plurals name="contacts_count">
         <item quantity="one">%d contact</item>
         <item quantity="other">%d contacts</item>
@@ -225,5 +240,9 @@
     <plurals name="import_photos_dropped">
         <item quantity="one">%d photo is left out: too large, or a link (links are never downloaded).</item>
         <item quantity="other">%d photos are left out: too large, or links (links are never downloaded).</item>
+    </plurals>
+    <plurals name="export_done">
+        <item quantity="one">%d contact exported</item>
+        <item quantity="other">%d contacts exported</item>
     </plurals>
 </resources>

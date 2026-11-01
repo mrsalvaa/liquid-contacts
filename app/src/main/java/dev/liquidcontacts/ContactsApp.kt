@@ -4,6 +4,7 @@ package dev.liquidcontacts
 import android.app.Application
 import dev.liquidcontacts.data.Repo
 import dev.liquidcontacts.data.Stores
+import dev.liquidcontacts.data.VcfFiles
 import dev.liquidcontacts.util.Strings
 
 class ContactsApp : Application() {
@@ -12,5 +13,6 @@ class ContactsApp : Application() {
         Strings.app = this
         Stores.init(this)
         Repo.init(this)
+        VcfFiles.cleanShared(this)
     }
 }

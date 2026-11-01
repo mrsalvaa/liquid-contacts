@@ -186,6 +186,21 @@
     <string name="import_action_skip">Omitir</string>
     <string name="import_action_merge">Unir</string>
     <string name="import_merge_with">Unir con %1$s</string>
+    <string name="share">Compartir</string>
+    <string name="share_contact">Compartir contacto</string>
+    <string name="export_title">Exportar contactos</string>
+    <string name="export_which">Qué contactos</string>
+    <string name="export_all">Todos</string>
+    <string name="export_label">Por etiqueta</string>
+    <string name="export_selected">Seleccionados</string>
+    <string name="export_photos">Incluir fotos</string>
+    <string name="export_format">Formato</string>
+    <string name="export_v3">vCard 3.0 (más compatible)</string>
+    <string name="export_v4">vCard 4.0</string>
+    <string name="export_warning">El archivo no va cifrado: cualquiera que lo tenga puede leer estos contactos.</string>
+    <string name="export_save">Guardar en un archivo</string>
+    <string name="export_pick">Elegir contactos</string>
+    <string name="export_failed">No se pudo crear el archivo</string>
     <plurals name="contacts_count">
         <item quantity="one">%d contacto</item>
         <item quantity="many">%d contactos</item>
@@ -235,5 +250,10 @@
         <item quantity="one">Queda afuera %d foto: muy grande, o un enlace (los enlaces nunca se descargan).</item>
         <item quantity="many">Quedan afuera %d fotos: muy grandes, o enlaces (los enlaces nunca se descargan).</item>
         <item quantity="other">Quedan afuera %d fotos: muy grandes, o enlaces (los enlaces nunca se descargan).</item>
+    </plurals>
+    <plurals name="export_done">
+        <item quantity="one">%d contacto exportado</item>
+        <item quantity="many">%d contactos exportados</item>
+        <item quantity="other">%d contactos exportados</item>
     </plurals>
 </resources>

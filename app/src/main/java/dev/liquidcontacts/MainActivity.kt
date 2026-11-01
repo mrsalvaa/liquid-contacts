@@ -67,6 +67,7 @@ import dev.liquidcontacts.contacts.ContactGroup
 import dev.liquidcontacts.core.vcard.VCardImport
 import dev.liquidcontacts.data.Repo
 import dev.liquidcontacts.data.Stores
+import dev.liquidcontacts.data.VcfFiles
 import dev.liquidcontacts.ui.components.LocalUndo
 import dev.liquidcontacts.ui.components.UndoHost
 import dev.liquidcontacts.ui.components.UndoSpec
@@ -126,6 +127,11 @@ private const val TAB_LABELS = 2
 private const val TAB_COUNT = 3
 
 class MainActivity : ComponentActivity() {
+    override fun onResume() {
+        super.onResume()
+        VcfFiles.cleanShared(this)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)

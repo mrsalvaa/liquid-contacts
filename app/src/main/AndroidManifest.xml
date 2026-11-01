@@ -52,6 +52,20 @@
             tools:ignore="MissingClass"
             tools:node="remove" />
 
+        <!--
+            Para compartir un .vcf temporal: sin exportar y solo con permisos por URI, temporales,
+            sobre la carpeta de res/xml/shared_files.xml.
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/shared_files" />
+        </provider>
+
         <!-- Un alias por ícono de la app: solo uno está activo (ver util/AppIcons.kt). -->
         <activity-alias
             android:name=".IconLiquid"

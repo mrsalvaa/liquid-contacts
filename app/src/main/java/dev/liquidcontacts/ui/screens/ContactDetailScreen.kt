@@ -25,6 +25,7 @@ import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Email
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.StarOutline
 import androidx.compose.material3.Text
@@ -33,6 +34,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,17 +51,23 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.liquidcontacts.R
 import dev.liquidcontacts.core.model.Contact
 import dev.liquidcontacts.core.model.ContactEvent
+import dev.liquidcontacts.core.text.Clean
+import dev.liquidcontacts.core.vcard.VCardFormat
 import dev.liquidcontacts.data.Repo
+import dev.liquidcontacts.data.VcfFiles
 import dev.liquidcontacts.ui.components.ContactAvatar
 import dev.liquidcontacts.ui.glass.DialogSpec
 import dev.liquidcontacts.ui.glass.GlassButton
 import dev.liquidcontacts.ui.glass.GlassCard
 import dev.liquidcontacts.ui.glass.GlassIconButton
+import dev.liquidcontacts.ui.glass.GlassSwitch
 import dev.liquidcontacts.ui.glass.LocalDialog
 import dev.liquidcontacts.ui.glass.LocalGlass
 import dev.liquidcontacts.ui.glass.SectionLabel
+import dev.liquidcontacts.ui.glass.SettingRow
 import dev.liquidcontacts.util.str
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /** Llamar, escribir, mandar un email o abrir un mapa con la app que el usuario tenga elegida. */
@@ -68,8 +76,11 @@ object Actions {
     fun message(context: Context, number: String) = start(context, Intent(Intent.ACTION_SENDTO, Uri.fromParts("smsto", number, null)))
     fun email(context: Context, address: String) = start(context, Intent(Intent.ACTION_SENDTO, Uri.fromParts("mailto", address, null)))
     fun map(context: Context, address: String) = start(context, Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=" + Uri.encode(address))))
-    fun web(context: Context, url: String) =
-        start(context, Intent(Intent.ACTION_VIEW, Uri.parse(if ("://" in url) url else "https://$url")))
+    /** Solo http y https: una agenda puede traer cualquier cosa como "sitio web" (javascript:, intent:). */
+    fun web(context: Context, url: String): Boolean {
+        val safe = Clean.url(url) ?: return false
+        return start(context, Intent(Intent.ACTION_VIEW, Uri.parse(if (safe.startsWith("http", ignoreCase = true) && "://" in safe) safe else "https://$safe")))
+    }
 
     /** false si no hay ninguna app para eso. */
     private fun start(context: Context, intent: Intent): Boolean = try {
@@ -86,6 +97,7 @@ fun ContactDetailScreen(contactId: Long, padding: PaddingValues, onBack: () -> U
     val context = LocalContext.current
     val dialog = LocalDialog.current
     val toast = LocalToast.current
+    val scope = rememberCoroutineScope()
     val book by Repo.book.collectAsStateWithLifecycle()
     val numbers by Repo.numbers.collectAsStateWithLifecycle()
     var contact by remember { mutableStateOf<Contact?>(null) }
@@ -113,6 +125,25 @@ fun ContactDetailScreen(contactId: Long, padding: PaddingValues, onBack: () -> U
                         Repo.launch { Repo.contacts.setStarred(contactId, next) }
                     },
                 )
+                GlassIconButton(Icons.Rounded.Share, str(R.string.share), {
+                    dialog(
+                        DialogSpec(str(R.string.share_contact)) { dismiss ->
+                            var photos by remember { mutableStateOf(true) }
+                            SettingRow(str(R.string.export_photos), trailing = { GlassSwitch(photos, { photos = it }) })
+                            Text(str(R.string.export_warning), fontSize = 13.sp, color = p.contentSecondary)
+                            Spacer(Modifier.height(16.dp))
+                            GlassButton(str(R.string.share), {
+                                dismiss()
+                                scope.launch {
+                                    val intent = withContext(Dispatchers.IO) { VcfFiles.shareIntent(context, listOf(contactId), VCardFormat.V3, photos) }
+                                    if (intent == null) toast(str(R.string.export_failed)) else context.startActivity(intent)
+                                }
+                            }, Modifier.fillMaxWidth(), prominent = true)
+                            Spacer(Modifier.height(8.dp))
+                            GlassButton(str(R.string.cancel), dismiss, Modifier.fillMaxWidth())
+                        },
+                    )
+                })
                 GlassIconButton(Icons.Rounded.Edit, str(R.string.edit), onEdit)
             }
         }

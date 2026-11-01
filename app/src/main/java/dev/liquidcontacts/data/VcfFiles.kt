@@ -1,16 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package dev.liquidcontacts.data
 
+import android.content.ClipData
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import androidx.core.content.FileProvider
 import dev.liquidcontacts.core.model.Contact
 import dev.liquidcontacts.core.vcard.VCardFormat
 import dev.liquidcontacts.core.vcard.VCardImport
 import dev.liquidcontacts.core.vcard.VCardLimits
 import dev.liquidcontacts.core.vcard.VCards
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.time.LocalDate
 
 /** Archivos .vcf: siempre con el selector del sistema o con permisos temporales, sin almacenamiento. */
@@ -57,6 +61,45 @@ object VcfFiles {
 
     private const val PHOTO_SIDE = 720
     private const val MAX_PIXELS = 50_000_000L
+
+    fun exportName(): String = "contactos-${LocalDate.now()}.vcf"
+
+    /** Los contactos de a uno, para no tener toda la agenda (con fotos) en memoria. */
+    fun contacts(ids: List<Long>, withPhotos: Boolean): Sequence<Contact> =
+        ids.asSequence().mapNotNull { if (withPhotos) Repo.contacts.loadFull(it) else Repo.contacts.load(it) }
+
+    /**
+     * Prepara compartir: un .vcf temporal en cache/shared y un intent con permiso de lectura
+     * temporal sobre ese archivo solo, sin permisos persistentes. Null si no se pudo escribir.
+     */
+    fun shareIntent(context: Context, ids: List<Long>, format: VCardFormat, withPhotos: Boolean): Intent? = runCatching {
+        cleanShared(context)
+        val dir = File(context.cacheDir, SHARED_DIR).apply { mkdirs() }
+        val name = (if (ids.size == 1) "contacto" else "contactos") + "-${System.currentTimeMillis()}.vcf"
+        val file = File(dir, name)
+        file.bufferedWriter(Charsets.UTF_8).use { VCards.write(it, contacts(ids, withPhotos), format, withPhotos) }
+        val uri = FileProvider.getUriForFile(context, context.packageName + ".files", file)
+        val send = Intent(Intent.ACTION_SEND)
+            .setType(MIME)
+            .putExtra(Intent.EXTRA_STREAM, uri)
+            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        // El permiso tiene que viajar también a través del selector de apps.
+        send.clipData = ClipData.newRawUri(name, uri)
+        Intent.createChooser(send, null).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }.getOrNull()
+
+    /**
+     * Borra los .vcf temporales que ya no hacen falta. No hay forma de saber cuándo terminó la app
+     * que los recibió, así que se les da [SHARED_KEEP_MS]; se llama al abrir la app, al volver a
+     * ella y antes de compartir de nuevo.
+     */
+    fun cleanShared(context: Context, keepMs: Long = SHARED_KEEP_MS) {
+        val limit = System.currentTimeMillis() - keepMs
+        File(context.cacheDir, SHARED_DIR).listFiles()?.filter { it.lastModified() < limit }?.forEach { it.delete() }
+    }
+
+    private const val SHARED_DIR = "shared"
+    private const val SHARED_KEEP_MS = 10 * 60 * 1000L
 
     /** Escribe en el archivo elegido con el selector; false si no se pudo (sin escribir a medias en silencio). */
     fun write(context: Context, uri: Uri, contacts: Sequence<Contact>, format: VCardFormat, includePhoto: Boolean): Boolean = runCatching {
