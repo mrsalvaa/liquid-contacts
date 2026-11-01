@@ -130,12 +130,8 @@ private fun PickList(kind: PickKind, padding: PaddingValues, onChosen: (Uri) -> 
     }
     fun pick(id: Long, name: String) {
         scope.launch {
-            val uri = withContext(Dispatchers.IO) {
-                if (kind == PickKind.CONTACT) return@withContext Repo.contacts.lookupUri(id)
-                null
-            }
             if (kind == PickKind.CONTACT) {
-                uri?.let(onChosen)
+                withContext(Dispatchers.IO) { Repo.contacts.lookupUri(id) }?.let(onChosen)
                 return@launch
             }
             val (content, column) = when (kind) {

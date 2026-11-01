@@ -498,10 +498,11 @@ private fun rememberDatePicker(): (ContactEvent, (ContactEvent) -> Unit) -> Unit
                 var withYear by remember { mutableStateOf(start.year != null) }
                 val months = java.text.DateFormatSymbols.getInstance().shortMonths.take(12)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                    WheelPicker(31, day, { day = it }, width = 64.dp, fontSize = 30, label = { "${it + 1}" })
-                    WheelPicker(12, month, { month = it }, width = 92.dp, fontSize = 26, label = { months[it].trimEnd('.') })
+                    // Lo escrito es el número que se ve, no la posición en la rueda.
+                    WheelPicker(31, day, { day = it }, width = 64.dp, fontSize = 30, label = { "${it + 1}" }, typed = { d -> (d - 1).takeIf { it in 0..30 } })
+                    WheelPicker(12, month, { month = it }, width = 92.dp, fontSize = 26, label = { months[it].trimEnd('.') }, typed = { m -> (m - 1).takeIf { it in 0..11 } })
                     if (withYear) {
-                        WheelPicker(thisYear - FIRST_YEAR + 1, year, { year = it }, cyclic = false, width = 96.dp, fontSize = 28, label = { "${FIRST_YEAR + it}" })
+                        WheelPicker(thisYear - FIRST_YEAR + 1, year, { year = it }, cyclic = false, width = 96.dp, fontSize = 28, label = { "${FIRST_YEAR + it}" }, typed = { y -> (y - FIRST_YEAR).takeIf { it in 0..thisYear - FIRST_YEAR } })
                     }
                 }
                 SettingRow(str(R.string.with_year), trailing = { GlassSwitch(withYear, { withYear = it }) })
