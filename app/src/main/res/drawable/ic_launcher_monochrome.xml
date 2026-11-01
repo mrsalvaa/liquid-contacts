@@ -7,5 +7,6 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
     <path android:pathData="M54,33a10,10 0,1 1,0,20a10,10 0,1 1,0,-20z" android:fillColor="#FF000000" />
-    <path android:pathData="M34,77c0,-11 9,-19 20,-19s20,8 20,19z" android:fillColor="#FF000000" />
+    <!-- Cuerpo entero: sin recipiente que lo tape, una elipse completa -->
+    <path android:pathData="M32,71a22,13 0,1 1,44,0a22,13 0,1 1,-44,0z" android:fillColor="#FF000000" />
 </vector>

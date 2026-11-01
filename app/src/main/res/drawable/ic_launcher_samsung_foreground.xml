@@ -8,5 +8,9 @@
     android:viewportHeight="108">
     <path android:pathData="M54,24a30,30 0,1 1,0,60a30,30 0,1 1,0,-60z" android:fillColor="#FFF43F5E" />
     <path android:pathData="M54,33a10,10 0,1 1,0,20a10,10 0,1 1,0,-20z" android:fillColor="#FFFFFFFF" />
-    <path android:pathData="M34,77c0,-11 9,-19 20,-19s20,8 20,19z" android:fillColor="#FFFFFFFF" />
+    <!-- Cuerpo entero: la elipse sigue de largo y el borde la tapa -->
+    <group>
+        <clip-path android:pathData="M54,27a27,27 0,1 1,0,54a27,27 0,1 1,0,-54z" />
+        <path android:pathData="M29,84a25,26 0,1 1,50,0a25,26 0,1 1,-50,0z" android:fillColor="#FFFFFFFF" />
+    </group>
 </vector>
