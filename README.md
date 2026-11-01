@@ -112,6 +112,32 @@ Only if you turn it on, and only to local network or VPN addresses (private IPs,
 - Temporary shared files are deleted when the app starts and after 10 minutes when returning to it. If the app isn't opened again, the file stays in the app's cache until then.
 - With TalkBack, a field that has text takes two stops (label, then value); the date wheels were not tested with TalkBack.
 
+## Download and install
+
+Changes in each version are in the [changelog](CHANGELOG.md).
+
+Get the APK from [Releases](../../releases) and install it.
+
+Check that the file wasn't altered:
+
+```bash
+sha256sum -c liquid-contacts-v1.0.1.apk.sha256
+```
+
+```
+8f56b95bb332fb580b142ff2cbb20d86e39b1ef998afc0bc5ca529fd13577b05  liquid-contacts-v1.0.1.apk
+```
+
+And that it's signed with the project's key (SHA-256 fingerprint of the certificate):
+
+```bash
+apksigner verify --print-certs liquid-contacts-v1.0.1.apk
+```
+
+```
+4F:27:F0:6D:76:C3:F6:02:0F:DF:94:8D:5A:E0:F7:FD:09:6A:88:5B:B6:00:4B:95:EC:0E:CC:E4:02:2D:80:06
+```
+
 ## Building
 
 Needs JDK 17 and the Android SDK (platform 35).

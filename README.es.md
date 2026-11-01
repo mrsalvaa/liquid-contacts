@@ -114,6 +114,32 @@ Solo si lo activás, y solo hacia direcciones de red local o VPN (IP privadas, `
 - Los archivos temporales de compartir se borran al arrancar la app y, a los 10 minutos, al volver a ella. Si la app no se vuelve a abrir, el archivo queda en su caché hasta entonces.
 - Con TalkBack, un campo con texto ocupa dos paradas (rótulo y valor); las ruedas de fecha no se probaron con TalkBack.
 
+## Descargar e instalar
+
+Los cambios de cada versión están en el [registro de cambios](CHANGELOG.es.md).
+
+Bajá el APK desde [Releases](../../releases) e instalalo.
+
+Comprobá que el archivo no fue alterado:
+
+```bash
+sha256sum -c liquid-contacts-v1.0.1.apk.sha256
+```
+
+```
+8f56b95bb332fb580b142ff2cbb20d86e39b1ef998afc0bc5ca529fd13577b05  liquid-contacts-v1.0.1.apk
+```
+
+Y que está firmado con la clave del proyecto (huella SHA-256 del certificado):
+
+```bash
+apksigner verify --print-certs liquid-contacts-v1.0.1.apk
+```
+
+```
+4F:27:F0:6D:76:C3:F6:02:0F:DF:94:8D:5A:E0:F7:FD:09:6A:88:5B:B6:00:4B:95:EC:0E:CC:E4:02:2D:80:06
+```
+
 ## Compilar
 
 Hace falta JDK 17 y el SDK de Android (plataforma 35).
