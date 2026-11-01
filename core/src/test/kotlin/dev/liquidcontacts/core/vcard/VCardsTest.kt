@@ -143,7 +143,7 @@ class VCardsTest {
                 "item2.X-ABDATE:1604-09-01\r\nitem2.X-ABLabel:Santo\r\nEND:VCARD\r\n",
         ).contacts.single()
         assertEquals(
-            listOf(ContactEvent(6, 20, 2015, EventKind.CUSTOM, "Anniversary"), ContactEvent(9, 1, null, EventKind.CUSTOM, "Santo")),
+            listOf(ContactEvent(6, 20, 2015, EventKind.ANNIVERSARY), ContactEvent(9, 1, null, EventKind.CUSTOM, "Santo")),
             c.events,
         )
     }

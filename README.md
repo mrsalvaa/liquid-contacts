@@ -95,7 +95,7 @@ Only if you turn it on, and only to local network or VPN addresses (private IPs,
 - **Conflicts:** nothing is overwritten on its own. If a contact changed on both sides (or was edited on one and deleted on the other) you see both versions and choose.
 - **Mass-delete protection:** if the server returns an empty address book, or if more than half and more than 10 contacts would be deleted (in either direction), sync stops *before deleting anything* and asks you.
 - **Wrong password:** sync stops until you write it again, and it never retries, so the server doesn't block you. After 3 failures in 10 minutes the app doesn't even try.
-- **Nothing is lost between clients:** when you edit a contact, only what changed in its vCard is rewritten. Fields the app doesn't show (`X-` properties, `IMPP`, `RELATED`, multi-level `ORG`...) go back to the server as they came.
+- **Nothing is lost between clients:** when you edit a contact, only what changed in its vCard is rewritten. Fields the app doesn't show (`X-` properties, `IMPP`, `RELATED`, multi-level `ORG`...) go back to the server as they came. Tests include a real vCard uploaded by DAVx5 4.5.21 to a local Radicale, with a made-up contact, plus Apple and Nextcloud shapes.
 - **DAVx5:** if it syncs the same address book you'd have the contacts twice. The summary warns you (and, if half or more already match, suggests not syncing). Android may show matching copies as one; merging them for real only happens from *Duplicates*, with a preview.
 - The password is encrypted with Android Keystore, excluded from backups and never logged. It is not kept in Android's account manager, which would store it unencrypted.
 

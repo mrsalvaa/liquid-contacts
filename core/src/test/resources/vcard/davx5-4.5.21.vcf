@@ -1,0 +1,27 @@
+BEGIN:VCARD
+VERSION:3.0
+PRODID:+//IDN bitfire.at//DAVx5/4.5.21-ose ez-vcard/0.12.2
+UID:1af098d9-3465-44e1-bd3c-04d86bf0a1b1
+ADR;TYPE=home:;;Av. Ficticia 123;Córdoba;Córdoba;5000;Argentina
+BDAY:1980-03-15
+EMAIL;TYPE=work:nuke@example.com
+item2.EMAIL:otra@example.org
+FN:Dra. Ñuke María Peña Quiroga Jr.
+IMPP:xmpp:nuke@example.net
+IMPP:sip:nuke@sip.example.com
+N:Peña Quiroga;Ñuke;María;Dra.;Jr.
+NICKNAME:Ñu
+NOTE:Nota con acento\, coma\; y punto y coma
+ORG:Taller Sur;Compras
+REV:2026-11-01T21:55:49Z
+TEL;TYPE=cell:+54 11 4000 1234
+item1.TEL:0351 400 5678
+TITLE:Directora
+URL:example.com/nuke
+item3.X-ABDATE:2005-11-02
+item1.X-ABLABEL:Guardia ñandú
+item2.X-ABLABEL:Facturación
+item3.X-ABLABEL:_$!<Anniversary>!$_
+item4.X-ABLABEL:_$!<Spouse>!$_
+item4.X-ABRELATEDNAMES:Rocío Peña
+END:VCARD

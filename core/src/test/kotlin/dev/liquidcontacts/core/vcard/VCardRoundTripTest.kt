@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package dev.liquidcontacts.core.vcard
 
+import dev.liquidcontacts.core.model.Contact
 import dev.liquidcontacts.core.model.ContactEvent
 import dev.liquidcontacts.core.model.EventKind
 import dev.liquidcontacts.core.model.LabelKind
+import dev.liquidcontacts.core.model.Name
 import dev.liquidcontacts.core.model.Phone
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -13,8 +15,11 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
- * Ninguna vCard pierde lo que la app no modela al editar. Datos inventados; las estructuras siguen
- * lo que generan esos clientes (la de DAVx5, la forma de vcard4android).
+ * Ninguna vCard pierde lo que la app no modela al editar. Datos inventados. Las de Apple, Nextcloud
+ * y la cadena [davx5] siguen la forma que generan esos clientes. La vCard real es el recurso
+ * vcard/davx5-4.5.21.vcf: la subió DAVx5 4.5.21-ose a un Radicale local desde un emulador, con un
+ * contacto inventado, y se guardó tal como la devuelve el servidor (Radicale reordena las
+ * propiedades y pasa los nombres a mayúsculas; por eso la cadena [davx5] cubre también X-ABLabel).
  */
 class VCardRoundTripTest {
     private val davx5 = """
@@ -85,6 +90,8 @@ class VCardRoundTripTest {
         END:VCARD
     """.trimIndent().replace("\n", "\r\n") + "\r\n"
 
+    private val davx5Real = assertNotNull(javaClass.getResource("/vcard/davx5-4.5.21.vcf")).readText()
+
     private fun props(text: String) = text.replace("\r\n ", "").lines().filter { it.isNotBlank() }
 
     /** Cada línea de [unknown] sigue estando, igual, en [text]. */
@@ -109,6 +116,44 @@ class VCardRoundTripTest {
                 "X-ABADR:ar", "FN:Dra. María Inés Rojas", "CATEGORIES:Familia,Club",
             ),
         )
+    }
+
+    @Test
+    fun davx5RealConservaCadaLineaAlEditarLaNota() {
+        val c = assertNotNull(VCards.contactOf(davx5Real))
+        val out = VCards.update(davx5Real, c.copy(note = "Nota nueva"), "x")
+        assertContains(out, "NOTE:Nota nueva")
+        assertEquals("1af098d9-3465-44e1-bd3c-04d86bf0a1b1", VCards.uidOf(out))
+        // Todo lo demás, línea por línea, como lo dejó DAVx5: solo cambian la nota y la fecha de revisión.
+        assertKept(out, props(davx5Real).filterNot { it.startsWith("NOTE") || it.startsWith("REV") })
+    }
+
+    @Test
+    fun davx5RealSeLeeEntero() {
+        val c = assertNotNull(VCards.contactOf(davx5Real))
+        assertEquals("Ñuke", c.name.given)
+        assertEquals("Peña Quiroga", c.name.family)
+        assertEquals(Phone("0351 400 5678", LabelKind.CUSTOM, "Guardia ñandú"), c.phones.first { it.number.startsWith("0351") })
+        assertEquals("Facturación", c.emails.first { it.address == "otra@example.org" }.label)
+        assertEquals("Taller Sur", c.organization)
+        assertEquals("Nota con acento, coma; y punto y coma", c.note)
+        assertEquals(EventKind.BIRTHDAY, c.events.first { it.year == 1980 }.kind)
+        assertEquals(EventKind.ANNIVERSARY, c.events.first { it.year == 2005 }.kind)
+    }
+
+    @Test
+    fun davx5RealCambiarUnTelefonoNoTocaLoDemas() {
+        val c = assertNotNull(VCards.contactOf(davx5Real))
+        val out = VCards.update(davx5Real, c.copy(phones = listOf(Phone("011 4000-9999", LabelKind.HOME))), "x")
+        assertFalse("0351 400 5678" in out)
+        assertFalse("Guardia ñandú" in out, "etiqueta huérfana\n$out")
+        assertKept(out, props(davx5Real).filterNot { it.startsWith("REV") || "TEL" in it || it.startsWith("item1.") })
+    }
+
+    @Test
+    fun elAniversarioEscritoEn30SeLeeComoAniversario() {
+        val c = assertNotNull(VCards.contactOf(VCards.write(listOf(Contact(name = Name(given = "Ana"), events = listOf(ContactEvent(11, 2, 2005, EventKind.ANNIVERSARY)))), VCardFormat.V3)))
+        assertEquals(listOf(ContactEvent(11, 2, 2005, EventKind.ANNIVERSARY)), c.events)
     }
 
     @Test
@@ -163,7 +208,7 @@ class VCardRoundTripTest {
 
     @Test
     fun sinCambiosNoSePierdeNadaEntreIdaYVuelta() {
-        for (original in listOf(davx5, apple, nextcloudV4)) {
+        for (original in listOf(davx5, davx5Real, apple, nextcloudV4)) {
             val once = VCards.update(original, assertNotNull(VCards.contactOf(original)), "x")
             val twice = VCards.update(once, assertNotNull(VCards.contactOf(once)), "x")
             val noRev = { t: String -> props(t).filterNot { it.startsWith("REV") }.sorted() }

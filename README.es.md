@@ -97,7 +97,7 @@ Solo si lo activás, y solo hacia direcciones de red local o VPN (IP privadas, `
 - **Conflictos:** nada se pisa solo. Si un contacto cambió en los dos lados (o se editó en uno y se borró en el otro), ves las dos versiones y elegís.
 - **Protección contra borrado masivo:** si el servidor devuelve una libreta vacía, o si se borrarían más de la mitad y más de 10 contactos (en cualquier dirección), la sincronización frena *antes de borrar nada* y te pregunta.
 - **Contraseña incorrecta:** la sincronización frena hasta que la escribas de nuevo, y nunca reintenta, para que el servidor no te bloquee. Después de 3 fallos en 10 minutos, la app ni lo intenta.
-- **No se pierde nada entre clientes:** al editar un contacto, solo se reescribe lo que cambió de su vCard. Los campos que la app no muestra (propiedades `X-`, `IMPP`, `RELATED`, `ORG` de varios niveles...) vuelven al servidor como vinieron.
+- **No se pierde nada entre clientes:** al editar un contacto, solo se reescribe lo que cambió de su vCard. Los campos que la app no muestra (propiedades `X-`, `IMPP`, `RELATED`, `ORG` de varios niveles...) vuelven al servidor como vinieron. Hay tests con una vCard real subida por DAVx5 4.5.21 a un Radicale local, con un contacto inventado, además de formas de Apple y Nextcloud.
 - **DAVx5:** si sincroniza la misma libreta tendrías los contactos dos veces. El resumen avisa (y, si coincide la mitad o más, sugiere no sincronizar). Android puede mostrar copias iguales como una sola; unirlas de verdad solo se hace desde *Duplicados*, con vista previa.
 - La contraseña va cifrada con Android Keystore, excluida de copias de seguridad y nunca en los registros. No se guarda en el gestor de cuentas de Android, que la dejaría sin cifrar.
 

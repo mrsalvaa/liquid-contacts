@@ -247,11 +247,17 @@ object VCards {
             card.anniversaries.forEach { a -> toEvent(a, EventKind.ANNIVERSARY)?.let(::add) }
             // Fechas con nombre al estilo Apple: itemN.X-ABDATE + itemN.X-ABLabel.
             card.getExtendedProperties("X-ABDATE").forEach { p ->
-                val label = p.group?.let { g -> card.getExtendedProperties("X-ABLABEL").firstOrNull { it.group == g }?.value }
+                val label = p.group?.let { g -> card.getExtendedProperties("X-ABLABEL").firstOrNull { it.group.equals(g, ignoreCase = true) }?.value }
                     ?.removePrefix("_\$!<")?.removeSuffix(">!\$_")
                 parseDate(p.value)?.let { (m, d, y) ->
-                    runCatching { ContactEvent(m, d, y, if (label.isNullOrBlank() || label.equals("Other", true)) EventKind.OTHER else EventKind.CUSTOM, label) }
-                        .getOrNull()?.let(::add)
+                    // Así escriben el aniversario en 3.0 DAVx5, Apple y esta misma app: es un aniversario, no una etiqueta propia.
+                    runCatching {
+                        when {
+                            label.equals("Anniversary", true) -> ContactEvent(m, d, y, EventKind.ANNIVERSARY)
+                            label.isNullOrBlank() || label.equals("Other", true) -> ContactEvent(m, d, y, EventKind.OTHER, label)
+                            else -> ContactEvent(m, d, y, EventKind.CUSTOM, label)
+                        }
+                    }.getOrNull()?.let(::add)
                 }
             }
         }.distinct()
