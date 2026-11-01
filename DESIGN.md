@@ -74,6 +74,18 @@ emulador en los 4 fondos o estilos × claro y oscuro, en la pantalla y en el di�
 - Un `GlassTextField` con texto no puede fundir su rótulo sin tocar `ui/glass`: rótulo y valor son
   dos paradas de TalkBack. Vacío, la ayuda ya es el nombre y es una sola parada.
 
+## Sincronización con el servidor
+
+Vive solo en esta app; phone y messages leen el proveedor del sistema.
+
+- **Cliente propio**, copiado de Calendar (`core/dav`, `ServerUrl`, `LoginGuard`, `RetryPolicy`, `CredentialStore`). OkHttp no sale de `core`.
+- **Una cuenta de Android por libreta.** El autenticador no autentica (la contraseña está en `CredentialStore`) y el sincronizador solo pide una sincronización a WorkManager; sirven para que Android acepte los contactos, marque los cambios de cualquier app y ofrezca la cuenta.
+- **Ficha:** `SOURCE_ID` es la URL, `SYNC1` el ETag, `SYNC2` el UID y `SYNC4` la vCard del servidor sin foto.
+- **`core/sync/ContactSyncPlan`** decide qué hacer sin tocar nada (función pura, con tests): nada se pisa; el borrado masivo se frena antes de aplicar nada.
+- **`VCards.update`** reescribe solo lo que cambió, categoría por categoría, sobre la vCard del servidor.
+- **`core/tls/ServerTrust`**: delega en el verificador del sistema y agrega huella o CA; el nombre lo verifica siempre OkHttp. No existe "confiar en todo".
+- Lo que el usuario tiene que resolver (frenos, conflictos, contraseña) aparece como aviso en la lista y en la pantalla del servidor: sin notificaciones, para no pedir ese permiso.
+
 ## Lecciones para las próximas apps
 
 Errores que aparecieron acá, con su solución. Varios venían de código copiado o se verían igual en
@@ -95,6 +107,10 @@ phone y messages.
 | **Clases faltantes de ez-vcard:** `NoClassDefFoundError` de FreeMarker. | La clase `VCard` lo menciona y la JVM lo exige al cargarla. | `testRuntimeOnly` de FreeMarker y `-dontwarn` en R8; usar `VCardWriter` directo en vez de la fachada `Ezvcard`. |
 | **Aviso "directo al ajuste":** no se movía. | Se pedía traer a la vista el título, que ya estaba visible. | `BringIntoViewRequester` sobre el campo mismo. |
 | **Datos de prueba mezclados:** un contacto de prueba puede juntarse con uno real. | Android agrega fichas por nombre y número. | Marcar la ficha al crearla (`SOURCE_ID`) y borrar por esa marca, nunca por nombre, etiqueta ni contacto. |
+
+| **CA importada vencida:** se aceptaba. | El verificador de Java no revisa la vigencia de sus autoridades de confianza. | Filtrar las vencidas al armar el almacén (`ServerTrust.parsePem`). |
+| **Rechazo de certificado como "error de red":** confundía justo al configurar. | Con IPv4 e IPv6, OkHttp informa el último intento; el error de TLS queda en los anteriores. | Buscar `SSLException` en `suppressed` y `cause` (`DavClient.sslCause`). |
+| **Resultado fuera de la pantalla:** "Probar conexión" parecía no hacer nada. | El mensaje quedaba debajo de los botones. | `BringIntoViewRequester` sobre el mensaje, y `liveRegion` para TalkBack. |
 
 ### Para probar
 

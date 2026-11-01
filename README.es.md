@@ -11,7 +11,7 @@ otra app los ve.
 ## Privacidad
 
 - Sin telemetría, estadísticas, informes de fallos, publicidad ni Google Play Services. 100 % software libre.
-- La app **hoy no tiene permiso de internet**: el servidor opcional (abajo) todavía no está hecho.
+- La única conexión que puede hacer la app es al servidor opcional que configures vos. Sin él, ninguna.
 - Tus contactos quedan en la agenda del teléfono. Sin copias de seguridad ni transferencia de los datos de la app.
 
 ## Funciones
@@ -46,16 +46,60 @@ cambiar en Ajustes.
 |---|---|
 | `READ_CONTACTS` | Mostrar tus contactos. Se pide al abrir la app, después de una pantalla que explica para qué. |
 | `WRITE_CONTACTS` | Crear, editar, unir y borrar contactos. Se pide junto con el anterior. |
+| `INTERNET` | Solo para el servidor CardDAV que configures. Ninguna otra conexión, y ninguna sin servidor. |
+| `ACCESS_NETWORK_STATE`, `WAKE_LOCK`, `RECEIVE_BOOT_COMPLETED` | Los agrega WorkManager: sincronizar solo con conexión y seguir después de reiniciar. |
 
-Nada más, verificado en el manifest mergeado (debug y release) y en el APK de release. Las fotos
-usan el selector de fotos del sistema y los `.vcf` el selector de archivos, así que no hay permiso
-de almacenamiento; llamar y mandar mensajes usan intents que no piden permiso. `INTERNET` se va a
-agregar recién con el paso del servidor, y solo para el servidor que configures.
+Nada más, verificado en el manifest mergeado (debug y release) y en el APK de release. La cuenta y
+el sincronizador no necesitan nada extra. Las fotos usan el selector de fotos del sistema y los
+`.vcf` el selector de archivos, así que no hay permiso de almacenamiento; llamar y mandar mensajes
+usan intents que no piden permiso.
 
 ## Servidor opcional (CardDAV)
 
-**Todavía no está hecho.** Es el último paso previsto. La app funciona completa sin él y no hace
-ninguna conexión de red. Cuando exista, esta sección va a explicar cómo configurarlo.
+La app funciona completa sin servidor. **Hasta que guardes uno, no hace ninguna conexión de red.** Tiene su propio cliente CardDAV (el mismo enfoque que Liquid Calendar): no necesita nada más y no usa DAVx5.
+
+**Para configurarlo:** Ajustes → Servidor CardDAV. Escribí dirección, usuario y contraseña → *Probar y guardar* → *Buscar libretas* → tocá una libreta. Antes de guardar nada ves un resumen: cuántos contactos se bajarían, cuántos ya están en otras cuentas, y un botón para respaldar lo que ya tenés (.vcf).
+
+### Ejemplo con Radicale
+
+```ini
+# /etc/radicale/config
+[server]
+hosts = 0.0.0.0:5232
+[auth]
+type = htpasswd
+htpasswd_filename = /etc/radicale/users
+htpasswd_encryption = bcrypt
+[rights]
+type = owner_only
+```
+
+- Dirección: `https://tu-servidor:5232/` (o la URL de tu proxy inverso). La app encuentra las libretas desde ahí.
+- Creá la libreta antes, desde la página web de Radicale (`/.web/`), como libreta de direcciones.
+- **Probá primero con una libreta nueva y vacía,** no con la real.
+
+### Certificados
+
+- **Certificado normal** (Let's Encrypt...): elegí *Del sistema*. Los certificados instalados por el usuario o por apps no cuentan.
+- **Autofirmado:** elegí *Huella* y pegá la SHA-256 (`openssl x509 -in cert.pem -noout -fingerprint -sha256`). Si probás la conexión, la app muestra la huella que vio para que la compares; nunca se acepta sola.
+- **Tu propia CA:** elegí *Mi CA* e importá su certificado. Vale solo para esta cuenta.
+- En todos los casos el certificado tiene que estar vigente y su nombre **tiene que coincidir con la dirección** (`subjectAltName`). No existe una opción de "confiar en todo".
+
+### Sin cifrar (http)
+
+Solo si lo activás, y solo hacia direcciones de red local o VPN (IP privadas, `100.64.0.0/10`, `.local`, `.lan`, `.home.arpa`, `.ts.net`). La dirección se vuelve a revisar al conectar, así que un nombre que resuelve a una IP pública no recibe nada. Una advertencia queda a la vista, porque tu contraseña y tus contactos viajan legibles por esa red.
+
+### Cómo sincroniza
+
+- Una cuenta de Android por libreta, así los contactos viven en la agenda del sistema y cualquier app los ve. Los contactos de otras cuentas nunca se suben ni se tocan.
+- En segundo plano cada 30 minutos a 12 horas, o a mano, solo con conexión. Los cambios de acá se suben al poco tiempo.
+- **Primera sincronización:** solo baja. No se sube ni se borra nada.
+- **Conflictos:** nada se pisa solo. Si un contacto cambió en los dos lados (o se editó en uno y se borró en el otro), ves las dos versiones y elegís.
+- **Protección contra borrado masivo:** si el servidor devuelve una libreta vacía, o si se borrarían más de la mitad y más de 10 contactos (en cualquier dirección), la sincronización frena *antes de borrar nada* y te pregunta.
+- **Contraseña incorrecta:** la sincronización frena hasta que la escribas de nuevo, y nunca reintenta, para que el servidor no te bloquee. Después de 3 fallos en 10 minutos, la app ni lo intenta.
+- **No se pierde nada entre clientes:** al editar un contacto, solo se reescribe lo que cambió de su vCard. Los campos que la app no muestra (propiedades `X-`, `IMPP`, `RELATED`, `ORG` de varios niveles...) vuelven al servidor como vinieron.
+- **DAVx5:** si sincroniza la misma libreta tendrías los contactos dos veces. El resumen avisa (y, si coincide la mitad o más, sugiere no sincronizar). Android puede mostrar copias iguales como una sola; unirlas de verdad solo se hace desde *Duplicados*, con vista previa.
+- La contraseña va cifrada con Android Keystore, excluida de copias de seguridad y nunca en los registros. No se guarda en el gestor de cuentas de Android, que la dejaría sin cifrar.
 
 ## Limitaciones conocidas
 
@@ -65,6 +109,8 @@ ninguna conexión de red. Cuando exista, esta sección va a explicar cómo confi
 - Un contacto que Android armó con fichas de varias cuentas se edita de a una ficha; cada ficha muestra su cuenta.
 - Unir contactos de cuentas distintas solo los vincula: cada cuenta conserva su copia.
 - El código de área por defecto solo existe para Argentina.
+- Al editar, la foto de un contacto sube tal como está en el celu (JPEG de 720 px), no la original del servidor. Una foto que viene como enlace queda igual y nunca se descarga.
+- Un solo servidor; para usar otro, primero quitá la cuenta.
 - Los archivos temporales de compartir se borran al arrancar la app y, a los 10 minutos, al volver a ella. Si la app no se vuelve a abrir, el archivo queda en su caché hasta entonces.
 - Con TalkBack, un campo con texto ocupa dos paradas (rótulo y valor); las ruedas de fecha no se probaron con TalkBack.
 
@@ -86,8 +132,8 @@ Debug y profile incluyen una herramienta que crea contactos inventados; la relea
 ## Estructura
 
 ```
-core/   Lógica sin Android, probada en la JVM: números, búsqueda, orden, avatares, duplicados, vCard, validación de entrada
-app/    La app: contacts/ (agenda del sistema), external/ (pedidos de otras apps), ui/
+core/   Lógica sin Android, probada en la JVM: números, búsqueda, orden, avatares, duplicados, vCard, validación, CardDAV, certificados, plan de sincronización
+app/    La app: contacts/ (agenda del sistema), external/ (pedidos de otras apps), sync/ (cuentas y motor), ui/
 ```
 
 ## Qué copiar a phone y messages
@@ -115,7 +161,7 @@ Archivos autocontenidos para las próximas apps. Al copiar, cambiá el paquete. 
 
 Phone y messages solo leen la agenda del sistema: necesitan `READ_CONTACTS` y ningún servidor.
 
-**No copiar:** `core/vcard`, `core/dupes`, `core/external`, `app/.../external`, `data/` y las pantallas, que son propios de esta app; y, cuando exista, nada del servidor.
+**No copiar:** `core/vcard`, `core/dupes`, `core/external`, `app/.../external`, `data/` y las pantallas, que son propios de esta app; y nada del servidor: `core/dav`, `core/tls`, `core/sync`, `core/ServerUrl.kt`, `core/Redact.kt`, `app/.../sync`.
 
 ## Dependencias
 
@@ -127,6 +173,8 @@ Además de AndroidX, Compose y Kotlin, el APK incluye:
 | [libphonenumber](https://github.com/google/libphonenumber) (solo el artefacto base) | 9.0.42 | Apache-2.0 | Ninguna: los datos de los países van dentro del jar, y no tiene referencias a `java.net` |
 | [ez-vcard](https://github.com/mangstadt/ez-vcard) (incluye unas pocas clases de Apache Commons Codec, Apache-2.0) | 0.12.2 | BSD-2-Clause | Ninguna: una foto que viene como enlace se descarta, nunca se descarga |
 | [vinnie](https://github.com/mangstadt/vinnie) | 2.0.2 | MIT | Ninguna |
+| [OkHttp](https://square.github.io/okhttp/) | 5.3.2 | Apache-2.0 | Solo hacia el servidor que configures |
+| [WorkManager](https://developer.android.com/jetpack/androidx/releases/work) | 2.10.5 | Apache-2.0 | Ninguna: programa la sincronización en segundo plano |
 
 ez-vcard se usa sin sus dependencias opcionales jsoup, FreeMarker y Jackson, y sin su plantilla e imágenes de hCard.
 
@@ -141,7 +189,7 @@ Solo para los tests, **no van en el APK**:
 
 - **Árbol completo** (`./gradlew :app:dependencies --configuration releaseRuntimeClasspath`): 97 artefactos, todos Apache-2.0 salvo ez-vcard (BSD-2-Clause) y vinnie (MIT), según sus POM. Todos compatibles con GPL-3.0-or-later.
 - **Sin Google Play Services, Firebase ni datatransport:** no están en el árbol ni en el código del APK de release (0 coincidencias de `com/google/android/gms`, `firebase`, `datatransport`).
-- **Sin red:** 0 referencias a `java.net.URL`, `HttpURLConnection`, `java.net.Socket` u OkHttp en el APK de release.
+- **Red:** solo OkHttp, solo desde `core/dav` y solo con un servidor configurado. Ninguna otra librería se conecta.
 - **Manifest final:** solo los dos permisos de arriba. Exportados: los 5 alias de íconos, `ExternalActivity` y `PickActivity`. `MainActivity` y el `FileProvider` no están exportados. `tools:node="remove"` quita el permiso interno de androidx.core, `androidx.startup` y el receptor de profileinstaller.
 - **F-Droid:** `allowBackup=false`, `dependenciesInfo` apagado, sin perfiles ART en el APK. Compose trae `libandroidx.graphics.path.so` (Apache-2.0, fuente en AOSP) desde Maven; el repo no tiene binarios.
 

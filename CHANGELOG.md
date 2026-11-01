@@ -17,4 +17,6 @@
 - Import .vcf files (vCard 2.1, 3.0, 4.0): preview, choice of account, contacts you already have are skipped or merged only if you ask. Size, count and photo limits; a broken file gives a clear message. Photos given as links are never downloaded.
 - Export and share .vcf: all, selected or by label, with or without photos, in vCard 3.0 or 4.0. Sharing uses a temporary permission.
 - Other apps can ask to view, add, edit or pick a contact and open a .vcf. Adding and editing only fill in the form: nothing is saved until you tap save. Picking returns only what you choose.
+- Optional CardDAV server, with its own client: one Android account per address book, first sync that only downloads (with a summary and a backup), conflicts you resolve yourself, mass-delete protection in both directions, certificate fingerprint or your own CA, http only to local network or VPN with a warning. Without a server there are no connections.
+- Fields the app doesn't show go back to the server as they came when a contact is edited.
 - Appearance settings shared with the rest of the suite, and five app icons.
