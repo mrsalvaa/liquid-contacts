@@ -64,6 +64,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.liquidcontacts.contacts.ContactGroup
+import dev.liquidcontacts.core.vcard.VCardImport
 import dev.liquidcontacts.data.Repo
 import dev.liquidcontacts.data.Stores
 import dev.liquidcontacts.ui.components.LocalUndo
@@ -93,7 +94,9 @@ import dev.liquidcontacts.ui.screens.ContactEditScreen
 import dev.liquidcontacts.ui.screens.ContactsTab
 import dev.liquidcontacts.ui.screens.DuplicatesScreen
 import dev.liquidcontacts.ui.screens.EditTarget
+import dev.liquidcontacts.ui.screens.ExportScreen
 import dev.liquidcontacts.ui.screens.FavoritesTab
+import dev.liquidcontacts.ui.screens.ImportScreen
 import dev.liquidcontacts.ui.screens.LabelScreen
 import dev.liquidcontacts.ui.screens.LabelsTab
 import dev.liquidcontacts.ui.screens.LocalToast
@@ -113,7 +116,8 @@ sealed interface Overlay {
     data class Label(val group: ContactGroup) : Overlay
     data object Duplicates : Overlay
     data class Merge(val contactIds: List<Long>, val preselected: Boolean) : Overlay
-    data object AreaCode : Overlay
+    data class Import(val data: VCardImport.Ok) : Overlay
+    data object Export : Overlay
 }
 
 private const val TAB_CONTACTS = 0
@@ -283,7 +287,9 @@ private fun App(animated: Boolean, flatNav: Boolean) {
                 }
                 holder.SaveableStateProvider(key) {
                     when (current) {
-                        Overlay.Settings, Overlay.AreaCode -> SettingsScreen(overlayPadding, ::pop, onDuplicates = { push(Overlay.Duplicates) })
+                        Overlay.Settings -> SettingsScreen(overlayPadding, ::pop, onDuplicates = { push(Overlay.Duplicates) }, onImport = { push(Overlay.Import(it)) }, onExport = { push(Overlay.Export) })
+                        is Overlay.Import -> ImportScreen(current.data, overlayPadding, ::pop)
+                        Overlay.Export -> ExportScreen(overlayPadding, ::pop)
                         is Overlay.Detail -> ContactDetailScreen(current.contactId, overlayPadding, ::pop, onEdit = { push(Overlay.Edit(EditTarget.Existing(current.contactId))) })
                         is Overlay.Edit -> ContactEditScreen(current.target, overlayPadding, ::pop, onSaved = { id ->
                             pop()

@@ -164,6 +164,28 @@
     <string name="backup_failed">No se pudo guardar el respaldo: no se unió nada</string>
     <string name="fichas_title">Fichas de este contacto, por cuenta</string>
     <string name="fichas_hint">Android las muestra como un solo contacto. Cada ficha se guarda en su cuenta: elegí cuál editar.</string>
+    <string name="import_title">Importar contactos</string>
+    <string name="import_vcf">Importar de un archivo .vcf</string>
+    <string name="import_vcf_hint">Ves quiénes están en el archivo y decidís antes de guardar nada.</string>
+    <string name="export_vcf">Exportar a un archivo .vcf</string>
+    <string name="export_vcf_hint">Todos, seleccionados o por etiqueta, con o sin fotos.</string>
+    <string name="import_empty">El archivo no tiene contactos para importar</string>
+    <string name="import_too_large">El archivo es demasiado grande (máximo 20 MB). No se importó nada.</string>
+    <string name="import_invalid">Este archivo no se pudo leer como vCard. No se importó nada.</string>
+    <string name="import_truncated">El archivo tiene más de 5000 contactos: solo se muestran los primeros 5000.</string>
+    <string name="import_button">Importar</string>
+    <string name="import_summary">Nuevos: %1$d · Unir: %2$d · Omitir: %3$d</string>
+    <string name="import_confirm_title">¿Importar estos contactos?</string>
+    <string name="import_confirm_text">Se crean %1$d en %2$s, se unen %3$d con contactos que ya tenés (se suman sus datos, sin deshacer) y se omiten %4$d.</string>
+    <string name="import_progress">Guardando %1$d de %2$d…</string>
+    <string name="import_done">Creados: %1$d · Unidos: %2$d · Con error: %3$d</string>
+    <string name="import_list">En el archivo</string>
+    <string name="import_exists">Ya existe: %1$s</string>
+    <string name="import_maybe_exists">Comparte número o email con %1$s</string>
+    <string name="import_action_new">Importar</string>
+    <string name="import_action_skip">Omitir</string>
+    <string name="import_action_merge">Unir</string>
+    <string name="import_merge_with">Unir con %1$s</string>
     <plurals name="contacts_count">
         <item quantity="one">%d contacto</item>
         <item quantity="many">%d contactos</item>
@@ -203,5 +225,15 @@
         <item quantity="one">¿Unir %d contacto?</item>
         <item quantity="many">¿Unir %d contactos?</item>
         <item quantity="other">¿Unir %d contactos?</item>
+    </plurals>
+    <plurals name="import_skipped">
+        <item quantity="one">Se salteó %d tarjeta vacía o ilegible.</item>
+        <item quantity="many">Se saltearon %d tarjetas vacías o ilegibles.</item>
+        <item quantity="other">Se saltearon %d tarjetas vacías o ilegibles.</item>
+    </plurals>
+    <plurals name="import_photos_dropped">
+        <item quantity="one">Queda afuera %d foto: muy grande, o un enlace (los enlaces nunca se descargan).</item>
+        <item quantity="many">Quedan afuera %d fotos: muy grandes, o enlaces (los enlaces nunca se descargan).</item>
+        <item quantity="other">Quedan afuera %d fotos: muy grandes, o enlaces (los enlaces nunca se descargan).</item>
     </plurals>
 </resources>

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package dev.liquidcontacts.ui.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -23,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -35,7 +38,9 @@ import dev.liquidcontacts.R
 import dev.liquidcontacts.contacts.ContactAccount
 import dev.liquidcontacts.core.phone.PhoneNumbers
 import dev.liquidcontacts.core.text.Fold
+import dev.liquidcontacts.core.vcard.VCardImport
 import dev.liquidcontacts.data.Repo
+import dev.liquidcontacts.data.VcfFiles
 import dev.liquidcontacts.data.Stores
 import dev.liquidcontacts.ui.glass.DialogSpec
 import dev.liquidcontacts.ui.glass.GlassButton
@@ -49,15 +54,17 @@ import dev.liquidcontacts.ui.glass.SettingRow
 import dev.liquidcontacts.util.plural
 import dev.liquidcontacts.util.str
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
 
 @Composable
-fun SettingsScreen(padding: PaddingValues, onBack: () -> Unit, onDuplicates: () -> Unit) {
+fun SettingsScreen(padding: PaddingValues, onBack: () -> Unit, onDuplicates: () -> Unit, onImport: (VCardImport.Ok) -> Unit, onExport: () -> Unit) {
     val p = LocalGlass.current
     val context = LocalContext.current
     val dialog = LocalDialog.current
     val toast = LocalToast.current
+    val scope = rememberCoroutineScope()
     val s by Stores.settings.state.collectAsStateWithLifecycle()
     val book by Repo.book.collectAsStateWithLifecycle()
     val edit: ((dev.liquidcontacts.data.AppSettings) -> dev.liquidcontacts.data.AppSettings) -> Unit = { Stores.settings.update(it) }
@@ -83,6 +90,18 @@ fun SettingsScreen(padding: PaddingValues, onBack: () -> Unit, onDuplicates: () 
             val loc = Repo.contacts.localAccount()
             local = loc
             accounts = (listOf(loc) + Repo.contacts.accounts()).distinct()
+        }
+    }
+
+    val pickFile = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            scope.launch {
+                when (val r = withContext(Dispatchers.IO) { VcfFiles.read(context, uri) }) {
+                    is VCardImport.Ok -> if (r.contacts.isEmpty()) toast(str(R.string.import_empty)) else onImport(r)
+                    is VCardImport.TooLarge -> toast(str(R.string.import_too_large))
+                    VCardImport.Invalid -> toast(str(R.string.import_invalid))
+                }
+            }
         }
     }
 
@@ -143,6 +162,8 @@ fun SettingsScreen(padding: PaddingValues, onBack: () -> Unit, onDuplicates: () 
 
         SectionLabel(str(R.string.tools))
         GlassCard {
+            SettingRow(str(R.string.import_vcf), subtitle = str(R.string.import_vcf_hint), onClick = { pickFile.launch(VcfFiles.OPEN_TYPES) })
+            SettingRow(str(R.string.export_vcf), subtitle = str(R.string.export_vcf_hint), onClick = onExport)
             SettingRow(str(R.string.duplicates), subtitle = str(R.string.duplicates_hint), onClick = onDuplicates)
         }
 

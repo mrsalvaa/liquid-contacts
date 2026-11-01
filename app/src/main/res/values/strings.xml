@@ -164,6 +164,28 @@
     <string name="backup_failed">Could not save the backup: nothing was merged</string>
     <string name="fichas_title">Cards of this contact, by account</string>
     <string name="fichas_hint">Android shows them as one contact. Each card is saved in its own account: choose which one to edit.</string>
+    <string name="import_title">Import contacts</string>
+    <string name="import_vcf">Import from a .vcf file</string>
+    <string name="import_vcf_hint">You see who is in the file and decide before anything is saved.</string>
+    <string name="export_vcf">Export to a .vcf file</string>
+    <string name="export_vcf_hint">All, selected or by label, with or without photos.</string>
+    <string name="import_empty">The file has no contacts to import</string>
+    <string name="import_too_large">The file is too large (maximum 20 MB). Nothing was imported.</string>
+    <string name="import_invalid">This file could not be read as a vCard. Nothing was imported.</string>
+    <string name="import_truncated">The file has more than 5000 contacts: only the first 5000 are shown.</string>
+    <string name="import_button">Import</string>
+    <string name="import_summary">New: %1$d · Merge: %2$d · Skip: %3$d</string>
+    <string name="import_confirm_title">Import these contacts?</string>
+    <string name="import_confirm_text">%1$d are created in %2$s, %3$d are merged with contacts you already have (their data is added, with no undo) and %4$d are skipped.</string>
+    <string name="import_progress">Saving %1$d of %2$d…</string>
+    <string name="import_done">Created: %1$d · Merged: %2$d · Failed: %3$d</string>
+    <string name="import_list">In the file</string>
+    <string name="import_exists">Already exists: %1$s</string>
+    <string name="import_maybe_exists">Shares a number or email with %1$s</string>
+    <string name="import_action_new">Import</string>
+    <string name="import_action_skip">Skip</string>
+    <string name="import_action_merge">Merge</string>
+    <string name="import_merge_with">Merge with %1$s</string>
     <plurals name="contacts_count">
         <item quantity="one">%d contact</item>
         <item quantity="other">%d contacts</item>
@@ -195,5 +217,13 @@
     <plurals name="merge_confirm_title">
         <item quantity="one">Merge %d contact?</item>
         <item quantity="other">Merge %d contacts?</item>
+    </plurals>
+    <plurals name="import_skipped">
+        <item quantity="one">%d unreadable or empty card was skipped.</item>
+        <item quantity="other">%d unreadable or empty cards were skipped.</item>
+    </plurals>
+    <plurals name="import_photos_dropped">
+        <item quantity="one">%d photo is left out: too large, or a link (links are never downloaded).</item>
+        <item quantity="other">%d photos are left out: too large, or links (links are never downloaded).</item>
     </plurals>
 </resources>
