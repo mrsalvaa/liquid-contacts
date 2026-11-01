@@ -4,7 +4,7 @@
 
 [English](CHANGELOG.md) | **Español**
 
-## Sin publicar
+## 1.0.1
 
 ### Novedades
 - Lista de contactos con búsqueda (sin importar tildes ni eñes, también por número en cualquier formato), orden alfabético en español, índice lateral y favoritos.

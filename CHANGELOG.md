@@ -4,7 +4,7 @@
 
 **English** | [Español](CHANGELOG.es.md)
 
-## Unreleased
+## 1.0.1
 
 ### New
 - Contact list with search (ignores accents and ñ, also by number in any format), Spanish alphabetical order, side index and favorites.
