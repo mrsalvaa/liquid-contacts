@@ -493,6 +493,8 @@ fun SwitchRow(title: String, checked: Boolean, onChange: (Boolean) -> Unit, modi
         title,
         modifier.semantics(mergeDescendants = true) { },
         subtitle = subtitle,
+        // Toda la fila lo cambia, no solo el interruptor.
+        onClick = { onChange(!checked) },
         trailing = { GlassSwitch(checked, onChange) },
     )
 }

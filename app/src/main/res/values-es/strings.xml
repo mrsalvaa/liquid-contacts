@@ -297,6 +297,7 @@
     <string name="conflicts_keep_mine">Quedarme con la de este celular</string>
     <string name="conflicts_keep_theirs">Quedarme con la del servidor</string>
     <string name="conflicts_later">Si no elegís, las dos quedan como están y no se pisa nada.</string>
+    <string name="server_err_change">Para usar otro servidor, primero quitá esta cuenta. No se cambió nada.</string>
     <plurals name="contacts_count">
         <item quantity="one">%d contacto</item>
         <item quantity="many">%d contactos</item>

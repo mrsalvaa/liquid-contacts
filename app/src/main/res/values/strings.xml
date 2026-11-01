@@ -297,6 +297,7 @@
     <string name="conflicts_keep_mine">Keep this phone\'s version</string>
     <string name="conflicts_keep_theirs">Keep the server\'s version</string>
     <string name="conflicts_later">If you don\'t choose, both stay as they are and nothing is overwritten.</string>
+    <string name="server_err_change">To use another server, first remove this account. Nothing was changed.</string>
     <plurals name="contacts_count">
         <item quantity="one">%d contact</item>
         <item quantity="other">%d contacts</item>

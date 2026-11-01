@@ -151,6 +151,15 @@ object SyncEngine {
         }
     }
 
+    /** Si guardar esta dirección dejaría libretas apuntando a otro servidor. */
+    fun changesServer(url: String, allowHttp: Boolean): Boolean {
+        val s = store.value
+        if (s.books.isEmpty()) return false
+        val new = (ServerUrl.parse(url, allowHttp) as? ServerUrl.Result.Ok)?.url ?: return false
+        val old = (ServerUrl.parse(s.url, s.allowHttp) as? ServerUrl.Result.Ok)?.url ?: return false
+        return new.uri.scheme != old.uri.scheme || new.host != old.host || new.port != old.port
+    }
+
     /** Guarda el servidor (y la contraseña cifrada, si se escribió una). No conecta. */
     fun saveServer(url: String, username: String, password: String?, allowHttp: Boolean, pin: String?, caPem: String?) {
         val normalized = (ServerUrl.parse(url, allowHttp) as ServerUrl.Result.Ok).url.toString()

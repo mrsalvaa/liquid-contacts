@@ -4,7 +4,10 @@ package dev.liquidcontacts.ui.screens
 import android.text.format.DateUtils
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,6 +19,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -24,6 +28,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -59,6 +66,7 @@ import kotlinx.coroutines.withContext
 private enum class TrustMode { SYSTEM, PIN, CA }
 
 /** Registrar el servidor CardDAV (opcional): sin esto la app no hace ninguna conexión. */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ServerScreen(padding: PaddingValues, onBack: () -> Unit, onFirstSync: (RemoteBook) -> Unit, onConflicts: (String) -> Unit) {
     val p = LocalGlass.current
@@ -93,6 +101,9 @@ fun ServerScreen(padding: PaddingValues, onBack: () -> Unit, onFirstSync: (Remot
     val trustReady = mode == TrustMode.SYSTEM || (mode == TrustMode.PIN && validPin != null) || (mode == TrustMode.CA && caPem != null)
     val effectiveCa = caPem.takeIf { mode == TrustMode.CA }
 
+    val result = remember { BringIntoViewRequester() }
+    LaunchedEffect(message) { if (message != null) result.bringIntoView() }
+
     fun connect(saveAfter: Boolean) {
         busy = true
         message = null
@@ -103,7 +114,9 @@ fun ServerScreen(padding: PaddingValues, onBack: () -> Unit, onFirstSync: (Remot
                 is TestResult.Ok -> {
                     books = r.discovery.books
                     message = plural(R.plurals.server_ok, r.discovery.books.size)
-                    if (saveAfter) {
+                    if (saveAfter && SyncEngine.changesServer(url, allowHttp)) {
+                        message = str(R.string.server_err_change)
+                    } else if (saveAfter) {
                         SyncEngine.saveServer(url, user.trim(), pass, allowHttp, validPin, effectiveCa)
                         password = ""
                     }
@@ -181,7 +194,8 @@ fun ServerScreen(padding: PaddingValues, onBack: () -> Unit, onFirstSync: (Remot
         Spacer(Modifier.height(8.dp))
         GlassButton(str(R.string.server_save), { connect(saveAfter = true) }, Modifier.fillMaxWidth(), prominent = true, enabled = !busy && trustReady && url.isNotBlank() && user.isNotBlank())
         if (busy) Text(str(R.string.server_testing), Modifier.padding(8.dp), fontSize = 14.sp)
-        message?.let { Text(it, Modifier.padding(8.dp), fontSize = 14.sp, fontWeight = FontWeight.Medium) }
+        // Debajo de los botones puede quedar fuera de la pantalla: se desplaza hasta el resultado.
+        message?.let { Text(it, Modifier.bringIntoViewRequester(result).padding(8.dp).semantics { liveRegion = LiveRegionMode.Polite }, fontSize = 15.sp, fontWeight = FontWeight.SemiBold) }
         seenFingerprint?.let { fp ->
             GlassCard(Modifier.padding(vertical = 6.dp)) {
                 Text(str(R.string.server_seen_cert), fontSize = 14.sp, color = p.contentSecondary)
