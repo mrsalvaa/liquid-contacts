@@ -4,6 +4,11 @@
 
 **English** | [Español](CHANGELOG.es.md)
 
+## 1.0.2
+
+### Changed
+- App icons: the person's body is now whole and stays behind the circle or card edge, instead of a half circle with a flat base.
+
 ## 1.0.1
 
 ### New

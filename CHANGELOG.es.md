@@ -4,6 +4,11 @@
 
 [English](CHANGELOG.md) | **Español**
 
+## 1.0.2
+
+### Cambios
+- Íconos de la app: el cuerpo de la persona ahora es entero y queda detrás del borde del círculo o la ficha, en vez de un medio círculo con base plana.
+
 ## 1.0.1
 
 ### Novedades
