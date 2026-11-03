@@ -66,6 +66,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -115,12 +116,19 @@ private object Thumbnails {
         override fun sizeOf(key: String, value: ImageBitmap) = value.width * value.height * 4
     }
 
-    suspend fun load(resolver: ContentResolver, uri: String): ImageBitmap? {
-        cache.get(uri)?.let { return it }
+    /** Reducida al tamaño en que se muestra: nítida, sin guardar en memoria la foto entera. */
+    suspend fun load(resolver: ContentResolver, uri: String, sidePx: Int): ImageBitmap? {
+        val key = "$uri#$sidePx"
+        cache.get(key)?.let { return it }
         return withContext(Dispatchers.IO) {
             runCatching {
-                resolver.openInputStream(Uri.parse(uri))?.use { BitmapFactory.decodeStream(it) }
-            }.getOrNull()?.let { bmp: Bitmap -> bmp.asImageBitmap().also { cache.put(uri, it) } }
+                val parsed = Uri.parse(uri)
+                val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                resolver.openInputStream(parsed)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+                var sample = 1
+                while (minOf(bounds.outWidth, bounds.outHeight) / (sample * 2) >= sidePx) sample *= 2
+                resolver.openInputStream(parsed)?.use { BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply { inSampleSize = sample }) }
+            }.getOrNull()?.let { bmp: Bitmap -> bmp.asImageBitmap().also { cache.put(key, it) } }
         }
     }
 }
@@ -134,17 +142,18 @@ private object Thumbnails {
 fun ContactAvatar(name: String, modifier: Modifier = Modifier, size: Dp = 44.dp, photoUri: String? = null, photo: ByteArray? = null) {
     val p = LocalGlass.current
     val resolver = LocalContext.current.contentResolver
-    val image by produceState<ImageBitmap?>(photo?.let { null } ?: photoUri?.let { Thumbnails.cache.get(it) }, photoUri, photo) {
+    val sidePx = with(LocalDensity.current) { size.roundToPx() }
+    val image by produceState<ImageBitmap?>(photo?.let { null } ?: photoUri?.let { Thumbnails.cache.get("$it#$sidePx") }, photoUri, photo, sidePx) {
         value = when {
             photo != null -> withContext(Dispatchers.Default) { BitmapFactory.decodeByteArray(photo, 0, photo.size)?.asImageBitmap() }
-            photoUri != null -> Thumbnails.load(resolver, photoUri)
+            photoUri != null -> Thumbnails.load(resolver, photoUri, sidePx)
             else -> null
         }
     }
     Box(modifier.size(size).clip(CircleShape).clearAndSetSemantics { }, contentAlignment = Alignment.Center) {
         val img = image
         if (img != null) {
-            Image(img, null, Modifier.size(size), contentScale = ContentScale.Crop)
+            Image(img, null, Modifier.size(size), contentScale = ContentScale.Crop, filterQuality = androidx.compose.ui.graphics.FilterQuality.High)
         } else {
             val bg = avatarColor(name, p.dark)
             val fg = readableOn(bg)

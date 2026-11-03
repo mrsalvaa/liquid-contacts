@@ -282,7 +282,8 @@ fun ContactsTab(ctx: TabContext) {
             selection,
             shown.map { it.summary },
             actions,
-            Modifier.align(Alignment.TopCenter).padding(top = ctx.padding.calculateTopPadding() + 8.dp, start = 16.dp, end = 16.dp),
+            ctx.padding.calculateTopPadding(),
+            Modifier.align(Alignment.TopCenter),
             backEnabled = LocalTabActive.current,
         )
     }
@@ -318,7 +319,8 @@ fun FavoritesTab(ctx: TabContext) {
         selection,
         favorites.map { it.summary },
         actions,
-        Modifier.align(Alignment.TopCenter).padding(top = ctx.padding.calculateTopPadding() + 8.dp, start = 16.dp, end = 16.dp),
+        ctx.padding.calculateTopPadding(),
+        Modifier.align(Alignment.TopCenter),
         backEnabled = LocalTabActive.current,
     )
     }
@@ -448,7 +450,8 @@ fun LabelScreen(group: ContactGroup, padding: PaddingValues, onBack: () -> Unit,
         selection,
         rows.orEmpty().map { it.summary },
         actions,
-        Modifier.align(Alignment.TopCenter).padding(top = padding.calculateTopPadding() + 8.dp, start = 16.dp, end = 16.dp),
+        padding.calculateTopPadding(),
+        Modifier.align(Alignment.TopCenter),
     )
     }
 }

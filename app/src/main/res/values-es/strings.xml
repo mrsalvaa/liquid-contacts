@@ -407,15 +407,13 @@
     <string name="label_added">Agregado a “%1$s”</string>
     <string name="label_add_failed">No se pudo agregar a “%1$s”</string>
     <string name="select">Seleccionar</string>
-    <string name="select_all">Seleccionar todos</string>
+    <string name="select_all">Todos</string>
     <string name="selection_exit">Salir de la selección</string>
     <string name="view_photo">Ver foto</string>
     <string name="open_contact">Abrir contacto</string>
     <string name="photo_of">Foto de %1$s</string>
     <string name="close">Cerrar</string>
-    <string name="save_in_no_book">Para guardar en tu servidor, activá una libreta en Ajustes › Servidor CardDAV.</string>
-    <string name="dropdown_open">Desplegado</string>
-    <string name="dropdown_closed">Plegado</string>
+    <string name="save_in_no_book">Tocá para activar una libreta y poder guardar acá.</string>
     <plurals name="delete_many_title">
         <item quantity="one">¿Borrar %d contacto?</item>
         <item quantity="other">¿Borrar %d contactos?</item>
@@ -432,4 +430,11 @@
         <item quantity="one">Se elimina en %d día</item>
         <item quantity="other">Se elimina en %d días</item>
     </plurals>
+    <string name="deselect_all">Ninguno</string>
+    <string name="photo_crop_title">Acomodar la foto</string>
+    <string name="photo_crop_hint">Movela y agrandala con dos dedos. Se guarda el cuadrado; el círculo es como se ve en la lista.</string>
+    <string name="photo_crop_use">Usar foto</string>
+    <string name="save_in_no_server">Tocá para configurar tu servidor y poder guardar acá.</string>
+    <string name="bar_unfavorite">Quitar</string>
+    <string name="bar_label">Etiqueta</string>
 </resources>

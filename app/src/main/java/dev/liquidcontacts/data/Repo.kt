@@ -87,7 +87,7 @@ object Repo {
         val noUpload = android.content.ContentResolver.getSyncAdapterTypes()
             .filter { it.authority == android.provider.ContactsContract.AUTHORITY && !it.supportsUploading() }
             .map { it.accountType }
-        return allAccounts().filterNot { (it.type == type && it.name in readOnlyBooks) || it.type in noUpload }
+        return allAccounts().filterNot { (it.type == type && it.name in readOnlyBooks) || it.type in noUpload || it.type in MESSAGING_ACCOUNTS }
     }
 
     fun hasPermission(): Boolean =
@@ -116,6 +116,19 @@ object Repo {
             .map { Row(it, SpanishOrder.section(it.displayName)) }
         _book.value = Book(rows, loaded = true)
     }
+
+    /** Apps de mensajería: publican sus fichas para Android, pero un contacto guardado ahí no les llega. */
+    private val MESSAGING_ACCOUNTS = setOf(
+        "com.whatsapp",
+        "com.whatsapp.w4b",
+        "org.thoughtcrime.securesms",
+        "org.telegram.messenger",
+        "org.telegram.messenger.account",
+        "com.viber.voip",
+        "com.viber.voip.account",
+        "ch.threema.app",
+        "com.skype.contacts.sync",
+    )
 
     /** Trabajo que tiene que terminar aunque se cierre la pantalla (guardar, borrar, unir). */
     fun launch(block: suspend CoroutineScope.() -> Unit) = scope.launch(block = block)

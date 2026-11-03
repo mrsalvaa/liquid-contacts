@@ -95,7 +95,7 @@ class SystemContacts(private val app: android.content.Context) {
         val out = ArrayList<ContactSummary>()
         resolver.query(
             Contacts.CONTENT_URI,
-            arrayOf(Contacts._ID, Contacts.LOOKUP_KEY, Contacts.DISPLAY_NAME_PRIMARY, Contacts.STARRED, Contacts.PHOTO_THUMBNAIL_URI),
+            arrayOf(Contacts._ID, Contacts.LOOKUP_KEY, Contacts.DISPLAY_NAME_PRIMARY, Contacts.STARRED, Contacts.PHOTO_URI),
             null,
             null,
             null,
@@ -651,6 +651,11 @@ class SystemContacts(private val app: android.content.Context) {
             setInGroup(id, ContactGroup(findOrCreateGroup(title.trim(), account), title.trim(), account, 0), true)
         }
     }
+
+    /** El lado máximo que guarda Android para una foto de contacto en este celular. */
+    fun maxPhotoSide(): Int =
+        resolver.query(ContactsContract.DisplayPhoto.CONTENT_MAX_DIMENSIONS_URI, arrayOf(ContactsContract.DisplayPhoto.DISPLAY_MAX_DIM), null, null, null)
+            ?.use { c -> if (c.moveToFirst()) c.getInt(0) else null }?.takeIf { it > 0 } ?: 720
 
     /** La foto en la mayor resolución que tenga Android; null si no tiene. */
     fun fullPhoto(contactId: Long): ByteArray? =

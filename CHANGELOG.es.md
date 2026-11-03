@@ -4,6 +4,17 @@
 
 [English](CHANGELOG.md) | **Español**
 
+## Sin publicar
+
+### Cambios
+- La selección múltiple usa un panel opaco, sin cristal, con botones Todos y Ninguno; sigue activa aunque no quede nadie seleccionado.
+- "Guardar en" se elige en una ventana. El servidor figura siempre: si todavía no hay una libreta activada, la fila lleva a activarla.
+- Ya no se ofrece guardar en cuentas de apps de mensajería como WhatsApp o Signal.
+- La foto se acomoda en 1:1 antes de guardarla y se abre en una ventana sobre la pantalla actual.
+
+### Arreglado
+- Calidad de las fotos: el detalle y la lista mostraban la miniatura de 96 px estirada; ahora usan la foto grande. Se guarda con menos compresión.
+
 ## 1.1.0
 
 ### Novedades

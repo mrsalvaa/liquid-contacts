@@ -389,15 +389,13 @@
     <string name="label_added">Added to “%1$s”</string>
     <string name="label_add_failed">Could not add to “%1$s”</string>
     <string name="select">Select</string>
-    <string name="select_all">Select all</string>
+    <string name="select_all">All</string>
     <string name="selection_exit">Exit selection</string>
     <string name="view_photo">View photo</string>
     <string name="open_contact">Open contact</string>
     <string name="photo_of">Photo of %1$s</string>
     <string name="close">Close</string>
-    <string name="save_in_no_book">To save on your server, turn on an address book in Settings › CardDAV server.</string>
-    <string name="dropdown_open">Expanded</string>
-    <string name="dropdown_closed">Collapsed</string>
+    <string name="save_in_no_book">Tap to turn on an address book so you can save here.</string>
     <plurals name="delete_many_title">
         <item quantity="one">Delete %d contact?</item>
         <item quantity="other">Delete %d contacts?</item>
@@ -414,4 +412,11 @@
         <item quantity="one">Deleted in %d day</item>
         <item quantity="other">Deleted in %d days</item>
     </plurals>
+    <string name="deselect_all">None</string>
+    <string name="photo_crop_title">Adjust the photo</string>
+    <string name="photo_crop_hint">Move it and zoom with two fingers. The square is saved; the circle is how it looks in the list.</string>
+    <string name="photo_crop_use">Use photo</string>
+    <string name="save_in_no_server">Tap to set up your server so you can save here.</string>
+    <string name="bar_unfavorite">Remove</string>
+    <string name="bar_label">Label</string>
 </resources>

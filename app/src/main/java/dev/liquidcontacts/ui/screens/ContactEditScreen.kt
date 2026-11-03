@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package dev.liquidcontacts.ui.screens
 
-import android.content.ContentResolver
-import android.graphics.Bitmap
-import android.graphics.ImageDecoder
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -41,13 +38,15 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import dev.liquidcontacts.sync.SyncEngine
 import dev.liquidcontacts.core.text.SpanishOrder
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.material3.Icon
-import androidx.compose.material.icons.rounded.ExpandMore
-import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
@@ -107,7 +106,7 @@ sealed interface EditTarget {
 }
 
 @Composable
-fun ContactEditScreen(target: EditTarget, padding: PaddingValues, onBack: () -> Unit, onSaved: (Long?) -> Unit) {
+fun ContactEditScreen(target: EditTarget, padding: PaddingValues, onBack: () -> Unit, onServer: () -> Unit, onSaved: (Long?) -> Unit) {
     val p = LocalGlass.current
     val context = LocalContext.current
     val dialog = LocalDialog.current
@@ -202,10 +201,25 @@ fun ContactEditScreen(target: EditTarget, padding: PaddingValues, onBack: () -> 
     val pickPhoto = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
             scope.launch {
-                val bytes = withContext(Dispatchers.IO) { runCatching { downscaledJpeg(context.contentResolver, uri) }.getOrNull() }
-                if (bytes == null) toast(str(R.string.photo_failed)) else {
-                    draft = draft?.copy(photo = bytes)
-                    photoChanged = true
+                val (source, maxSide) = withContext(Dispatchers.IO) {
+                    runCatching { decodeForCrop(context.contentResolver, uri) }.getOrNull() to Repo.contacts.maxPhotoSide()
+                }
+                if (source == null) {
+                    toast(str(R.string.photo_failed))
+                } else {
+                    dialog(
+                        DialogSpec(str(R.string.photo_crop_title)) { dismiss ->
+                            PhotoCropper(source, maxSide, onDone = { bytes ->
+                                if (bytes == null) {
+                                    toast(str(R.string.photo_failed))
+                                } else {
+                                    draft = draft?.copy(photo = bytes)
+                                    photoChanged = true
+                                }
+                                dismiss()
+                            }, onCancel = dismiss)
+                        },
+                    )
                 }
             }
         }
@@ -276,11 +290,40 @@ fun ContactEditScreen(target: EditTarget, padding: PaddingValues, onBack: () -> 
         } else if (original == null && account != null) {
             SectionLabel(str(R.string.save_in))
             val order = remember { SpanishOrder() }
-            val options = accounts.map { it to Labels.account(it, local) }.sortedWith { a, b -> order.compare(a.second, b.second) }
-            AccountDropdown(options, account!!) { account = it }
-            val server = SyncEngine.store.value
-            if (server.configured && server.books.none { it.firstSyncDone && !it.readOnly }) {
-                Text(str(R.string.save_in_no_book), Modifier.padding(horizontal = 8.dp, vertical = 6.dp), fontSize = 13.sp, color = p.contentSecondary)
+            val options = accounts.map { it to Labels.account(it, local) }.sortedWith { x, y -> order.compare(x.second, y.second) }
+            val toServer = {
+                if (dirty) {
+                    dialog(
+                        DialogSpec(str(R.string.discard_title)) { dismiss ->
+                            Text(str(R.string.discard_text), fontSize = 15.sp, color = p.contentSecondary)
+                            Spacer(Modifier.height(16.dp))
+                            DangerButton(str(R.string.discard), {
+                                dismiss()
+                                onServer()
+                            }, Modifier.fillMaxWidth())
+                            Spacer(Modifier.height(8.dp))
+                            GlassButton(str(R.string.keep_editing), dismiss, Modifier.fillMaxWidth())
+                        },
+                    )
+                } else {
+                    onServer()
+                }
+            }
+            GlassCard {
+                SettingRow(
+                    options.firstOrNull { it.first == account }?.second.orEmpty(),
+                    onClick = {
+                        dialog(
+                            DialogSpec(str(R.string.save_in)) { dismiss ->
+                                AccountChooser(options, account, { account = it; dismiss() }) {
+                                    dismiss()
+                                    toServer()
+                                }
+                            },
+                        )
+                    },
+                    trailing = { Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = p.contentSecondary) },
+                )
             }
         } else if (account != null) {
             Text(
@@ -583,43 +626,29 @@ private fun Contact.plusExtra(e: Contact): Contact = copy(
 private fun <T> List<T>.replaceAt(i: Int, v: T): List<T> = toMutableList().also { it[i] = v }
 private fun <T> List<T>.removeAt(i: Int): List<T> = toMutableList().also { it.removeAt(i) }
 
-/** La foto elegida, achicada a 720 px de lado como máximo y en JPEG (las de la cámara pesan varios MB). */
-private fun downscaledJpeg(resolver: ContentResolver, uri: Uri): ByteArray {
-    val bitmap = ImageDecoder.decodeBitmap(ImageDecoder.createSource(resolver, uri)) { decoder, info, _ ->
-        val max = maxOf(info.size.width, info.size.height)
-        if (max > 720) decoder.setTargetSampleSize(maxOf(1, max / 720))
-        decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
-    }
-    val scale = 720f / maxOf(bitmap.width, bitmap.height)
-    val out = if (scale < 1f) Bitmap.createScaledBitmap(bitmap, (bitmap.width * scale).toInt(), (bitmap.height * scale).toInt(), true) else bitmap
-    return ByteArrayOutputStream().use { s ->
-        out.compress(Bitmap.CompressFormat.JPEG, 88, s)
-        s.toByteArray()
-    }
-}
-
-/** Desplegable de cuentas: muestra la elegida y, al tocarlo, las demás (ya ordenadas). */
+/**
+ * Elegir dónde guardar, en una ventana. El servidor figura siempre: si todavía no hay una libreta
+ * donde guardar, la fila lleva a activarla.
+ */
 @Composable
-private fun AccountDropdown(options: List<Pair<ContactAccount, String>>, selected: ContactAccount, onPick: (ContactAccount) -> Unit) {
+private fun AccountChooser(options: List<Pair<ContactAccount, String>>, selected: ContactAccount?, onPick: (ContactAccount) -> Unit, onServer: () -> Unit) {
     val p = LocalGlass.current
-    var open by rememberSaveable { mutableStateOf(false) }
-    val state = str(if (open) R.string.dropdown_open else R.string.dropdown_closed)
-    GlassCard {
-        SettingRow(
-            options.firstOrNull { it.first == selected }?.second.orEmpty(),
-            Modifier.semantics { stateDescription = state },
-            onClick = { open = !open },
-            trailing = { Icon(if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, null, tint = p.contentSecondary) },
-        )
-        if (open) {
-            options.forEach { (a, label) ->
+    val server by SyncEngine.store.state.collectAsStateWithLifecycle()
+    LazyColumn(Modifier.fillMaxWidth().heightIn(max = 420.dp)) {
+        items(options) { (a, label) ->
+            SettingRow(
+                label,
+                onClick = { onPick(a) },
+                trailing = if (a == selected) ({ Icon(Icons.Rounded.Check, null, tint = p.accentFg) }) else null,
+            )
+        }
+        if (server.books.none { it.firstSyncDone && !it.readOnly }) {
+            item {
                 SettingRow(
-                    label,
-                    onClick = {
-                        onPick(a)
-                        open = false
-                    },
-                    trailing = if (a == selected) ({ Icon(Icons.Rounded.Check, null, tint = p.accentFg) }) else null,
+                    server.nickname.ifEmpty { str(R.string.server_title) },
+                    subtitle = str(if (server.configured) R.string.save_in_no_book else R.string.save_in_no_server),
+                    onClick = onServer,
+                    trailing = { Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = p.contentSecondary) },
                 )
             }
         }

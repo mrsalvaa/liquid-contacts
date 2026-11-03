@@ -102,6 +102,7 @@ Only if you turn it on, and only to local network or VPN addresses (private IPs,
 
 ## Known limitations
 
+- **Photo size:** Android's address book stores contact photos up to a limit set by each phone (720 px on the one tested). The app crops 1:1 to that size and cannot store more. Android may also compress it again.
 - **Trash:** it only keeps what is deleted from this app; anything deleted in another app or on the server does not arrive there. It keeps the data the app handles: what other apps added to a contact on this phone (such as a messaging app's data) doesn't come back on restore. A server contact keeps its whole vCard, but returns as a new card with a different UID.
 - **Undo** of a merge lasts 10 seconds and is a copy in memory: it is lost if the app is closed. It restores the contacts' data, but recreated contacts get a new id, so **whatever other apps had linked to them is not recovered**.
 - **Undo after an import** only reverts merges into existing contacts; new contacts stay (you can delete them).

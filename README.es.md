@@ -104,6 +104,7 @@ Solo si lo activás, y solo hacia direcciones de red local o VPN (IP privadas, `
 
 ## Limitaciones conocidas
 
+- **Tamaño de las fotos:** la agenda de Android guarda las fotos de contacto hasta un máximo que define cada celular (720 px en el probado). La app recorta en 1:1 a ese tamaño y no puede guardar más. Android además puede volver a comprimirla.
 - **Papelera:** solo guarda lo que se borra desde esta app; lo que se borre en otra app o en el servidor no llega ahí. Guarda los datos que la app maneja: lo que otras apps agregaron a un contacto de este celular (por ejemplo, datos de una app de mensajería) no vuelve al restaurarlo. Un contacto del servidor conserva toda su vCard, pero vuelve como tarjeta nueva, con otro UID.
 - **Deshacer** una unión dura 10 segundos y es una copia en memoria: se pierde si se cierra la app. Restaura los datos de los contactos, pero los recreados tienen otro id, así que **no se recupera lo que otras apps tenían vinculado a ellos**.
 - **Deshacer después de importar** solo revierte las uniones con contactos existentes; los contactos nuevos quedan (se pueden borrar).

@@ -107,7 +107,7 @@ import dev.liquidcontacts.ui.screens.LabelsTab
 import dev.liquidcontacts.ui.screens.LocalToast
 import dev.liquidcontacts.ui.screens.MergeScreen
 import dev.liquidcontacts.ui.screens.PermissionScreen
-import dev.liquidcontacts.ui.screens.PhotoScreen
+import dev.liquidcontacts.ui.screens.PhotoWindow
 import dev.liquidcontacts.ui.screens.ServerScreen
 import dev.liquidcontacts.ui.screens.SettingsScreen
 import dev.liquidcontacts.ui.screens.TabContext
@@ -130,7 +130,6 @@ sealed interface Overlay {
     data class FirstSync(val book: RemoteBook) : Overlay
     data class Conflicts(val bookUrl: String) : Overlay
     data object Trash : Overlay
-    data class Photo(val contactId: Long, val name: String) : Overlay
 }
 
 private const val TAB_CONTACTS = 0
@@ -231,7 +230,7 @@ fun ContactsUi(
         ContactNav(
             onOpen = { push(Overlay.Detail(it)) },
             onEdit = { push(Overlay.Edit(EditTarget.Existing(it))) },
-            onPhoto = { id, name -> push(Overlay.Photo(id, name)) },
+            onPhoto = { id, name -> dialog = DialogSpec(name) { dismiss -> PhotoWindow(id, name, dismiss) } },
             onMerge = { push(Overlay.Merge(it, preselected = true)) },
         )
     }
@@ -351,8 +350,7 @@ fun ContactsUi(
                         is Overlay.Conflicts -> ConflictsScreen(current.bookUrl, overlayPadding, ::pop)
                         is Overlay.Detail -> ContactDetailScreen(current.contactId, overlayPadding, ::pop, contactNav)
                         Overlay.Trash -> TrashScreen(overlayPadding, ::pop)
-                        is Overlay.Photo -> PhotoScreen(current.contactId, current.name, overlayPadding, ::pop)
-                        is Overlay.Edit -> ContactEditScreen(current.target, overlayPadding, ::pop, onSaved = { id ->
+                        is Overlay.Edit -> ContactEditScreen(current.target, overlayPadding, ::pop, onServer = { push(Overlay.Server) }, onSaved = { id ->
                             // Si lo pidió otra app, se le devuelve el contacto guardado y se cierra.
                             if (isExternal && stack.size == 1) {
                                 onExit(id)

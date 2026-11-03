@@ -4,6 +4,17 @@
 
 **English** | [Español](CHANGELOG.es.md)
 
+## Unreleased
+
+### Changed
+- Multi-select uses an opaque panel instead of glass, with All and None buttons; it stays on even with nothing selected.
+- "Save in" is chosen in a window. The server is always listed: if no address book is on yet, the row takes you to turn one on.
+- Messaging app accounts such as WhatsApp or Signal are no longer offered for saving.
+- The photo is framed 1:1 before saving and opens in a window over the current screen.
+
+### Fixed
+- Photo quality: the detail screen and the list showed the stretched 96 px thumbnail; they now use the large photo. It is saved with less compression.
+
 ## 1.1.0
 
 ### New

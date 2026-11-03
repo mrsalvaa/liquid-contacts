@@ -2,6 +2,23 @@
 package dev.liquidcontacts.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.rounded.Deselect
+import androidx.compose.material3.Icon
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -54,8 +71,6 @@ import dev.liquidcontacts.ui.components.SwitchRow
 import dev.liquidcontacts.ui.components.UndoSpec
 import dev.liquidcontacts.ui.glass.DialogSpec
 import dev.liquidcontacts.ui.glass.GlassButton
-import dev.liquidcontacts.ui.glass.GlassCard
-import dev.liquidcontacts.ui.glass.GlassIconButton
 import dev.liquidcontacts.ui.glass.LocalActionSheet
 import dev.liquidcontacts.ui.glass.LocalDialog
 import dev.liquidcontacts.ui.glass.LocalGlass
@@ -78,14 +93,16 @@ class ContactNav(
     val onMerge: (List<Long>) -> Unit,
 )
 
-/** Contactos seleccionados en una lista. Sin ninguno, la lista funciona normal. */
+/** Selección múltiple de una lista. Sigue activa aunque no quede ninguno, hasta salir con la X o Atrás. */
 class ContactSelection {
+    var active by mutableStateOf(false)
     var ids by mutableStateOf<Set<Long>>(emptySet())
-    val active: Boolean get() = ids.isNotEmpty()
     fun toggle(id: Long) {
+        active = true
         ids = if (id in ids) ids - id else ids + id
     }
     fun clear() {
+        active = false
         ids = emptySet()
     }
 }
@@ -263,52 +280,82 @@ fun SelectableContactRow(
 }
 
 /**
- * Barra de la selección múltiple, arriba de la lista. [all] son los contactos que se ven y [rows]
- * los datos de la lista, para saber si ya son favoritos. El botón Atrás sale de la selección.
+ * Barra de la selección múltiple: un panel opaco que tapa el título, sin cristal, porque la lista
+ * que pasa por debajo no dejaba leer los botones. [all] son los contactos que se ven.
  */
 @Composable
-fun SelectionBar(selection: ContactSelection, all: List<ContactSummary>, actions: ContactActions, modifier: Modifier = Modifier, backEnabled: Boolean = true) {
+fun SelectionBar(selection: ContactSelection, all: List<ContactSummary>, actions: ContactActions, topInset: Dp, modifier: Modifier = Modifier, backEnabled: Boolean = true) {
     if (!selection.active) return
     BackHandler(enabled = backEnabled) { selection.clear() }
+    val p = LocalGlass.current
     val ids = selection.ids.toList()
+    val some = ids.isNotEmpty()
     val allStarred = all.filter { it.id in selection.ids }.all { it.starred }
-    GlassCard(modifier.fillMaxWidth()) {
+    Column(
+        modifier
+            .fillMaxWidth()
+            .background(p.base)
+            // Los toques no pasan a la lista de abajo.
+            .clickable(remember { MutableInteractionSource() }, null) {}
+            .padding(top = topInset + 4.dp, bottom = 6.dp, start = 8.dp, end = 8.dp),
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            GlassIconButton(Icons.Rounded.Close, str(R.string.selection_exit), selection::clear, size = 48.dp)
+            BarAction(Icons.Rounded.Close, str(R.string.selection_exit), selection::clear, showLabel = false)
             Text(
                 plural(R.plurals.selected_count, ids.size, ids.size),
-                Modifier.weight(1f).padding(horizontal = 12.dp).semantics { heading() },
+                Modifier.weight(1f).padding(horizontal = 8.dp).semantics { heading() },
                 fontSize = 18.sp,
                 fontWeight = FontWeight.SemiBold,
+                color = p.content,
             )
-            GlassIconButton(Icons.Rounded.SelectAll, str(R.string.select_all), { selection.ids = all.mapTo(HashSet()) { it.id } }, size = 48.dp)
+            BarAction(Icons.Rounded.SelectAll, str(R.string.select_all), { selection.ids = all.mapTo(HashSet()) { it.id } }, enabled = ids.size < all.size)
+            BarAction(Icons.Rounded.Deselect, str(R.string.deselect_all), { selection.ids = emptySet() }, enabled = some)
         }
-        Spacer(Modifier.height(8.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween) {
-            GlassIconButton(
-                if (allStarred) Icons.Rounded.StarOutline else Icons.Rounded.Star,
-                str(if (allStarred) R.string.remove_favorite else R.string.add_favorite),
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            BarAction(
+                if (allStarred && some) Icons.Rounded.StarOutline else Icons.Rounded.Star,
+                str(if (allStarred && some) R.string.remove_favorite else R.string.add_favorite),
                 {
                     actions.setStarred(ids, !allStarred)
                     selection.clear()
                 },
-                size = 48.dp,
+                enabled = some,
+                shortLabel = str(if (allStarred && some) R.string.bar_unfavorite else R.string.favorite),
             )
-            GlassIconButton(Icons.AutoMirrored.Rounded.Label, str(R.string.add_label), {
+            BarAction(Icons.AutoMirrored.Rounded.Label, str(R.string.add_label), {
                 actions.addLabel(ids)
                 selection.clear()
-            }, size = 48.dp)
-            GlassIconButton(Icons.Rounded.Share, str(R.string.share), {
+            }, enabled = some, shortLabel = str(R.string.bar_label))
+            BarAction(Icons.Rounded.Share, str(R.string.share), {
                 actions.share(ids)
                 selection.clear()
-            }, size = 48.dp)
-            if (ids.size >= 2) {
-                GlassIconButton(Icons.AutoMirrored.Rounded.MergeType, str(R.string.merge), {
-                    actions.nav.onMerge(ids)
-                    selection.clear()
-                }, size = 48.dp)
-            }
-            GlassIconButton(Icons.Rounded.DeleteOutline, str(R.string.delete), { actions.delete(ids, null) { selection.clear() } }, size = 48.dp)
+            }, enabled = some)
+            BarAction(Icons.AutoMirrored.Rounded.MergeType, str(R.string.merge), {
+                actions.nav.onMerge(ids)
+                selection.clear()
+            }, enabled = ids.size >= 2)
+            BarAction(Icons.Rounded.DeleteOutline, str(R.string.delete), { actions.delete(ids, null) { selection.clear() } }, enabled = some)
         }
+    }
+}
+
+/** Botón plano con ícono y texto. Apagado se ve tenue y no responde. */
+@Composable
+private fun BarAction(icon: ImageVector, label: String, onClick: () -> Unit, enabled: Boolean = true, showLabel: Boolean = true, shortLabel: String = label) {
+    val p = LocalGlass.current
+    val color = if (enabled) p.content else p.contentSecondary.copy(alpha = 0.45f)
+    Column(
+        Modifier
+            .widthIn(min = 56.dp)
+            .heightIn(min = 48.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(enabled = enabled, role = Role.Button, onClickLabel = label, onClick = onClick)
+            .semantics(mergeDescendants = true) { contentDescription = label }
+            .padding(horizontal = 6.dp, vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Icon(icon, null, Modifier.size(24.dp), tint = color)
+        if (showLabel) Text(shortLabel, fontSize = 11.sp, color = color, maxLines = 1, textAlign = TextAlign.Center, modifier = Modifier.widthIn(max = 72.dp), overflow = TextOverflow.Ellipsis)
     }
 }
