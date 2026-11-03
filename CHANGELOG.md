@@ -4,7 +4,7 @@
 
 **English** | [Español](CHANGELOG.es.md)
 
-## Unreleased
+## 1.1.1
 
 ### Changed
 - Multi-select: the top shows the count with All; at the bottom the pill changes to the options and the new contact button goes away. It follows the Liquid Glass or Solid style and closes when nothing is left selected.
@@ -13,6 +13,7 @@
 - The photo is framed 1:1 before saving and opens in a window over the current screen.
 
 ### Fixed
+- On the plain background in light theme, the tab bar and selection bars now show the liquid glass effect, as they do in dark theme.
 - Photo quality: the detail screen and the list showed the stretched 96 px thumbnail; they now use the large photo. It is saved with less compression.
 
 ## 1.1.0

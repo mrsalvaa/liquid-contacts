@@ -4,7 +4,7 @@
 
 [English](CHANGELOG.md) | **Español**
 
-## Sin publicar
+## 1.1.1
 
 ### Cambios
 - Selección múltiple: arriba, los seleccionados con Todos; abajo, la píldora cambia a las opciones y el botón de contacto nuevo se va. Respeta el estilo Liquid Glass o Sólido y se cierra al quedar sin seleccionados.
@@ -13,6 +13,7 @@
 - La foto se acomoda en 1:1 antes de guardarla y se abre en una ventana sobre la pantalla actual.
 
 ### Arreglado
+- Con fondo liso en tema claro, la barra de pestañas y las de selección ahora dejan ver el efecto de cristal líquido, igual que en oscuro.
 - Calidad de las fotos: el detalle y la lista mostraban la miniatura de 96 px estirada; ahora usan la foto grande. Se guarda con menos compresión.
 
 ## 1.1.0
