@@ -4,7 +4,7 @@
 
 [English](CHANGELOG.md) | **Español**
 
-## Sin publicar
+## 1.1.0
 
 ### Novedades
 - Mantener apretado un contacto abre sus opciones: llamar, mensaje, favorito, editar, etiqueta, compartir, seleccionar y borrar.

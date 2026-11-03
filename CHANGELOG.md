@@ -4,7 +4,7 @@
 
 **English** | [Español](CHANGELOG.es.md)
 
-## Unreleased
+## 1.1.0
 
 ### New
 - Long-pressing a contact opens its options: call, message, favorite, edit, label, share, select and delete.
