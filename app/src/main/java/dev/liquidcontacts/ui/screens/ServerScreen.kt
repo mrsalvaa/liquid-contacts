@@ -77,6 +77,7 @@ fun ServerScreen(padding: PaddingValues, onBack: () -> Unit, onFirstSync: (Remot
     val s by SyncEngine.store.state.collectAsStateWithLifecycle()
 
     var url by rememberSaveable { mutableStateOf(s.url) }
+    var nickname by rememberSaveable { mutableStateOf(s.nickname) }
     var user by rememberSaveable { mutableStateOf(s.username) }
     var password by remember { mutableStateOf("") }
     var allowHttp by rememberSaveable { mutableStateOf(s.allowHttp) }
@@ -118,6 +119,7 @@ fun ServerScreen(padding: PaddingValues, onBack: () -> Unit, onFirstSync: (Remot
                         message = str(R.string.server_err_change)
                     } else if (saveAfter) {
                         SyncEngine.saveServer(url, user.trim(), pass, allowHttp, validPin, effectiveCa)
+                        SyncEngine.setNickname(nickname)
                         password = ""
                     }
                 }
@@ -148,6 +150,8 @@ fun ServerScreen(padding: PaddingValues, onBack: () -> Unit, onFirstSync: (Remot
         }
         Text(str(R.string.server_hint), Modifier.padding(horizontal = 8.dp, vertical = 4.dp), fontSize = 13.sp, color = p.contentSecondary)
         GlassCard(Modifier.padding(top = 8.dp)) {
+            // Con un servidor ya guardado se aplica al escribir: cambiar el apodo no necesita conexión.
+            GlassTextField(nickname, { nickname = it.take(60); if (s.configured) SyncEngine.setNickname(nickname) }, str(R.string.server_nickname), Modifier.padding(vertical = 4.dp))
             GlassTextField(url, { url = it; books = null }, str(R.string.server_url), Modifier.padding(vertical = 4.dp), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri))
             GlassTextField(user, { user = it }, str(R.string.server_user), Modifier.padding(vertical = 4.dp))
             GlassTextField(
@@ -273,6 +277,7 @@ fun ServerScreen(padding: PaddingValues, onBack: () -> Unit, onFirstSync: (Remot
                             scope.launch {
                                 SyncEngine.removeServer()
                                 url = ""
+                                nickname = ""
                                 user = ""
                                 pin = ""
                                 caPem = null

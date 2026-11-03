@@ -157,6 +157,32 @@ class VCardRoundTripTest {
     }
 
     @Test
+    fun laPapeleraDevuelveLaTarjetaConOtroUidYSinPerderNada() {
+        val sinUid = VCards.withoutUid(davx5Real)
+        assertFalse("1af098d9" in sinUid)
+        val out = VCards.update(sinUid, assertNotNull(VCards.contactOf(sinUid)), "uid-nuevo")
+        assertEquals("uid-nuevo", VCards.uidOf(out))
+        assertKept(out, props(davx5Real).filterNot { it.startsWith("UID") || it.startsWith("REV") })
+    }
+
+    @Test
+    fun laCopiaDeLaPapeleraConservaTodosLosDatos() {
+        val c = assertNotNull(VCards.contactOf(davx5Real)).copy(groups = setOf("Familia", "Club"))
+        val copia = assertNotNull(VCards.contactOf(VCards.write(listOf(c), VCardFormat.V3, includePhoto = false)))
+        assertEquals(c.name, copia.name)
+        assertEquals(c.phones, copia.phones)
+        assertEquals(c.emails, copia.emails)
+        assertEquals(c.addresses, copia.addresses)
+        assertEquals(c.events, copia.events)
+        assertEquals(c.groups, copia.groups)
+        assertEquals(c.note, copia.note)
+        assertEquals(c.organization, copia.organization)
+        assertEquals(c.jobTitle, copia.jobTitle)
+        assertEquals(c.nickname, copia.nickname)
+        assertEquals(c.websites, copia.websites)
+    }
+
+    @Test
     fun davx5LaEtiquetaPropiaSeLee() {
         val c = assertNotNull(VCards.contactOf(davx5))
         assertEquals(Phone("011 4000-2000", LabelKind.CUSTOM, "Portería"), c.phones.first())

@@ -4,6 +4,20 @@
 
 **English** | [Español](CHANGELOG.es.md)
 
+## Unreleased
+
+### New
+- Long-pressing a contact opens its options: call, message, favorite, edit, label, share, select and delete.
+- Long-pressing the photo starts multi-select, with favorite, label, share, merge and delete.
+- Tapping the photo opens it full screen (also from the detail screen).
+- Trash: what you delete from the app stays for 30 days and can be restored. Deleting shows Undo.
+- Server nickname, shown instead of the account's technical name.
+
+### Changed
+- "Save in" when creating a contact is an alphabetical dropdown, with the server's address books and their nickname.
+- The CardDAV server comes first in Settings.
+- Read-only address books and accounts that don't upload changes are no longer offered for saving.
+
 ## 1.0.2
 
 ### Changed

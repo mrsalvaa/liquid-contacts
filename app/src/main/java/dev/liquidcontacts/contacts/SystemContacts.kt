@@ -63,6 +63,9 @@ class MergeUndo internal constructor(
 /** Resultado de unir. [undo] solo existe si la unión borró contactos. */
 class MergeResult(val contactId: Long, val undo: MergeUndo?)
 
+/** Copia de una ficha antes de borrarla. [reference] es la vCard del servidor, si la tiene. */
+class RawSnapshot(val rawId: Long, val account: ContactAccount, val contact: Contact, val reference: String?)
+
 /** Una etiqueta (grupo) con su cuenta y cuántos contactos tiene. */
 data class ContactGroup(val id: Long, val title: String, val account: ContactAccount, val count: Int)
 
@@ -598,6 +601,61 @@ class SystemContacts(private val app: android.content.Context) {
         resolver.delete(ContentUris.withAppendedId(Contacts.CONTENT_URI, contactId), null, null)
     }
 
+    /** Cada ficha del contacto con su foto, para poder volver a crearla. */
+    fun snapshot(contactId: Long): List<RawSnapshot> {
+        val starred = load(contactId)?.starred ?: false
+        return rawContactIds(contactId).map { (raw, account) ->
+            val reference = resolver.query(ContentUris.withAppendedId(RawContacts.CONTENT_URI, raw), arrayOf(RawContacts.SYNC4), null, null, null)
+                ?.use { c -> if (c.moveToFirst()) c.getString(0) else null }
+            RawSnapshot(raw, account, readRawContact(raw).copy(starred = starred), reference)
+        }
+    }
+
+    fun isRawLive(rawId: Long): Boolean =
+        resolver.query(ContentUris.withAppendedId(RawContacts.CONTENT_URI, rawId), arrayOf(RawContacts.DELETED), null, null, null)
+            ?.use { c -> c.moveToFirst() && c.getInt(0) == 0 } ?: false
+
+    /** Crea de nuevo una ficha de una copia. Queda marcada como cambiada: si es de un servidor, se sube. */
+    fun restoreRaw(account: ContactAccount, contact: Contact, reference: String?): Long {
+        val raw = saveRaw(EditableContact(null, account, contact), photoChanged = contact.photo != null, sourceId = null, asAdapter = false)
+        if (contact.starred) contactIdOf(raw)?.let { setStarred(it, true) }
+        if (reference != null && account.type != null) {
+            // Como sincronizador para que escribir la referencia no cambie nada más.
+            val uri = ContentUris.withAppendedId(RawContacts.CONTENT_URI, raw).buildUpon()
+                .appendQueryParameter(ContactsContract.CALLER_IS_SYNCADAPTER, "true")
+                .appendQueryParameter(RawContacts.ACCOUNT_NAME, account.name)
+                .appendQueryParameter(RawContacts.ACCOUNT_TYPE, account.type)
+                .build()
+            resolver.update(uri, ContentValues().apply { put(RawContacts.SYNC4, reference) }, null, null)
+        }
+        return raw
+    }
+
+    /** Pide a Android que muestre estas fichas como un solo contacto. */
+    fun link(rawIds: List<Long>) {
+        val ops = ArrayList<ContentProviderOperation>()
+        for (i in rawIds.indices) for (j in i + 1 until rawIds.size) {
+            ops += ContentProviderOperation.newUpdate(AggregationExceptions.CONTENT_URI)
+                .withValue(AggregationExceptions.TYPE, AggregationExceptions.TYPE_KEEP_TOGETHER)
+                .withValue(AggregationExceptions.RAW_CONTACT_ID1, rawIds[i])
+                .withValue(AggregationExceptions.RAW_CONTACT_ID2, rawIds[j])
+                .build()
+        }
+        resolver.applyBatch(ContactsContract.AUTHORITY, ops)
+    }
+
+    /** Agrega a la etiqueta, en la cuenta de la primera ficha de cada contacto (la crea si no existe ahí). */
+    fun addToLabel(contactIds: Collection<Long>, title: String) {
+        for (id in contactIds) {
+            val account = rawContactIds(id).firstOrNull()?.second ?: continue
+            setInGroup(id, ContactGroup(findOrCreateGroup(title.trim(), account), title.trim(), account, 0), true)
+        }
+    }
+
+    /** La foto en la mayor resolución que tenga Android; null si no tiene. */
+    fun fullPhoto(contactId: Long): ByteArray? =
+        Contacts.openContactPhotoInputStream(resolver, ContentUris.withAppendedId(Contacts.CONTENT_URI, contactId), true)?.use { it.readBytes() }
+
     /** Si unir estos contactos borra fichas (todas de una sola ficha y de la misma cuenta). */
     fun mergeDeletes(contactIds: List<Long>): Boolean {
         val raws = contactIds.map { rawContactIds(it) }
@@ -628,15 +686,7 @@ class SystemContacts(private val app: android.content.Context) {
             return MergeResult(id, MergeUndo(keepRaw, account, originals.first().contact, originals.drop(1).map { it.contact }))
         }
         val all = raws.flatten().map { it.first }
-        val ops = ArrayList<ContentProviderOperation>()
-        for (i in all.indices) for (j in i + 1 until all.size) {
-            ops += ContentProviderOperation.newUpdate(AggregationExceptions.CONTENT_URI)
-                .withValue(AggregationExceptions.TYPE, AggregationExceptions.TYPE_KEEP_TOGETHER)
-                .withValue(AggregationExceptions.RAW_CONTACT_ID1, all[i])
-                .withValue(AggregationExceptions.RAW_CONTACT_ID2, all[j])
-                .build()
-        }
-        resolver.applyBatch(ContactsContract.AUTHORITY, ops)
+        link(all)
         if (merged.starred) contactIdOf(all.first())?.let { setStarred(it, true) }
         return MergeResult(contactIdOf(all.first()) ?: contactIds.first(), undo = null)
     }

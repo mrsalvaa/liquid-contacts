@@ -159,6 +159,9 @@ object VCards {
         return writeCard(card)
     }
 
+    /** La misma vCard sin su UID, para volver a subirla como una tarjeta nueva. */
+    fun withoutUid(text: String): String = text.replace(Regex("(?im)^UID[:;].*\\r?\\n"), "")
+
     /**
      * La vCard para subir después de editar: parte de [original] (la del servidor) y reescribe solo
      * lo que cambió. Lo que la app no modela (propiedades X-, IMPP, RELATED, GEO, un ORG de varios

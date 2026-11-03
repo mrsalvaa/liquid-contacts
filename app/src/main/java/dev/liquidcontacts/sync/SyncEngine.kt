@@ -168,6 +168,10 @@ object SyncEngine {
         SyncScheduler.refresh()
     }
 
+    fun setNickname(nickname: String) {
+        store.update { it.copy(nickname = nickname.trim()) }
+    }
+
     // ---------------------------------------------------------------- primera sincronización
 
     /** Solo mira: baja la libreta a memoria y cuenta qué ya está en otras cuentas. No guarda nada. */

@@ -49,6 +49,15 @@ object Labels {
     /** "Este celular" para la cuenta local; si no, el nombre de la cuenta. */
     fun account(a: ContactAccount, local: ContactAccount?): String = when {
         a.type == null || a == local -> str(R.string.account_local)
-        else -> a.name ?: a.type
+        else -> serverLabel(a) ?: a.name ?: a.type
+    }
+
+    /** Una libreta del servidor con apodo: "Apodo · Libreta". */
+    private fun serverLabel(a: ContactAccount): String? {
+        if (a.type != str(R.string.account_type)) return null
+        val server = dev.liquidcontacts.sync.SyncEngine.store.value
+        if (server.nickname.isEmpty()) return null
+        val book = server.books.firstOrNull { it.accountName == a.name } ?: return server.nickname
+        return "${server.nickname} · ${book.name}"
     }
 }

@@ -4,6 +4,20 @@
 
 [English](CHANGELOG.md) | **Español**
 
+## Sin publicar
+
+### Novedades
+- Mantener apretado un contacto abre sus opciones: llamar, mensaje, favorito, editar, etiqueta, compartir, seleccionar y borrar.
+- Mantener apretada la foto activa la selección múltiple, con favorito, etiqueta, compartir, unir y borrar.
+- Tocar la foto la abre a pantalla completa (también desde el detalle).
+- Papelera: lo que borrás desde la app queda 30 días y se puede restaurar. Al borrar aparece Deshacer.
+- Apodo del servidor, que se muestra en lugar del nombre técnico de la cuenta.
+
+### Cambios
+- "Guardar en" al crear un contacto es un desplegable en orden alfabético, con las libretas del servidor y su apodo.
+- El servidor CardDAV está primero en Ajustes.
+- Ya no se ofrece guardar en libretas de solo lectura ni en cuentas que no suben cambios.
+
 ## 1.0.2
 
 ### Cambios

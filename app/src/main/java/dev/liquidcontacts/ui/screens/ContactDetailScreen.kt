@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Message
@@ -34,10 +35,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -52,22 +53,16 @@ import dev.liquidcontacts.R
 import dev.liquidcontacts.core.model.Contact
 import dev.liquidcontacts.core.model.ContactEvent
 import dev.liquidcontacts.core.text.Clean
-import dev.liquidcontacts.core.vcard.VCardFormat
 import dev.liquidcontacts.data.Repo
-import dev.liquidcontacts.data.VcfFiles
 import dev.liquidcontacts.ui.components.DangerButton
 import dev.liquidcontacts.ui.components.ContactAvatar
-import dev.liquidcontacts.ui.components.SwitchRow
-import dev.liquidcontacts.ui.glass.DialogSpec
 import dev.liquidcontacts.ui.glass.GlassButton
 import dev.liquidcontacts.ui.glass.GlassCard
 import dev.liquidcontacts.ui.glass.GlassIconButton
-import dev.liquidcontacts.ui.glass.LocalDialog
 import dev.liquidcontacts.ui.glass.LocalGlass
 import dev.liquidcontacts.ui.glass.SectionLabel
 import dev.liquidcontacts.util.str
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /** Llamar, escribir, mandar un email o abrir un mapa con la app que el usuario tenga elegida. */
@@ -92,12 +87,11 @@ object Actions {
 }
 
 @Composable
-fun ContactDetailScreen(contactId: Long, padding: PaddingValues, onBack: () -> Unit, onEdit: () -> Unit) {
+fun ContactDetailScreen(contactId: Long, padding: PaddingValues, onBack: () -> Unit, nav: ContactNav) {
     val p = LocalGlass.current
     val context = LocalContext.current
-    val dialog = LocalDialog.current
     val toast = LocalToast.current
-    val scope = rememberCoroutineScope()
+    val actions = rememberContactActions(nav)
     val book by Repo.book.collectAsStateWithLifecycle()
     val numbers by Repo.numbers.collectAsStateWithLifecycle()
     var contact by remember { mutableStateOf<Contact?>(null) }
@@ -125,32 +119,22 @@ fun ContactDetailScreen(contactId: Long, padding: PaddingValues, onBack: () -> U
                         Repo.launch { Repo.contacts.setStarred(contactId, next) }
                     },
                 )
-                GlassIconButton(Icons.Rounded.Share, str(R.string.share), {
-                    dialog(
-                        DialogSpec(str(R.string.share_contact)) { dismiss ->
-                            var photos by remember { mutableStateOf(true) }
-                            SwitchRow(str(R.string.export_photos), photos, { photos = it })
-                            Text(str(R.string.export_warning), fontSize = 13.sp, color = p.contentSecondary)
-                            Spacer(Modifier.height(16.dp))
-                            GlassButton(str(R.string.share), {
-                                dismiss()
-                                scope.launch {
-                                    val intent = withContext(Dispatchers.IO) { VcfFiles.shareIntent(context, listOf(contactId), VCardFormat.V3, photos) }
-                                    if (intent == null) toast(str(R.string.export_failed)) else context.startActivity(intent)
-                                }
-                            }, Modifier.fillMaxWidth(), prominent = true)
-                            Spacer(Modifier.height(8.dp))
-                            GlassButton(str(R.string.cancel), dismiss, Modifier.fillMaxWidth())
-                        },
-                    )
-                })
-                GlassIconButton(Icons.Rounded.Edit, str(R.string.edit), onEdit)
+                GlassIconButton(Icons.Rounded.Share, str(R.string.share), { actions.share(listOf(contactId)) })
+                GlassIconButton(Icons.Rounded.Edit, str(R.string.edit), { nav.onEdit(contactId) })
             }
         }
         if (c == null) return@Column
 
         Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            ContactAvatar(c.displayName, size = 112.dp, photoUri = book.rows.firstOrNull { it.summary.id == contactId }?.summary?.photoUri)
+            val photoUri = book.rows.firstOrNull { it.summary.id == contactId }?.summary?.photoUri
+            val name = c.displayName.ifBlank { str(R.string.no_name) }
+            // Tocar la foto la abre grande.
+            ContactAvatar(
+                c.displayName,
+                if (photoUri == null) Modifier else Modifier.clip(CircleShape).clickable(onClickLabel = str(R.string.view_photo), role = Role.Image) { nav.onPhoto(contactId, name) },
+                size = 112.dp,
+                photoUri = photoUri,
+            )
             Text(
                 c.displayName.ifBlank { str(R.string.no_name) },
                 Modifier.padding(top = 14.dp).semantics { heading() },
@@ -214,21 +198,7 @@ fun ContactDetailScreen(contactId: Long, padding: PaddingValues, onBack: () -> U
         Spacer(Modifier.height(24.dp))
         DangerButton(
             str(R.string.delete_contact),
-            {
-                dialog(
-                    DialogSpec(str(R.string.delete_contact_title, c.displayName.ifBlank { str(R.string.no_name) })) { dismiss ->
-                        Text(str(R.string.delete_contact_text), fontSize = 15.sp, color = p.contentSecondary)
-                        Spacer(Modifier.height(16.dp))
-                        DangerButton(str(R.string.delete), {
-                            dismiss()
-                            Repo.launch { Repo.contacts.delete(contactId) }
-                            onBack()
-                        }, Modifier.fillMaxWidth())
-                        Spacer(Modifier.height(8.dp))
-                        GlassButton(str(R.string.cancel), dismiss, Modifier.fillMaxWidth())
-                    },
-                )
-            },
+            { actions.delete(listOf(contactId), c.displayName, onBack) },
             Modifier.fillMaxWidth(),
             icon = Icons.Rounded.DeleteOutline,
         )

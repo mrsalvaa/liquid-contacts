@@ -67,7 +67,7 @@
     <string name="note">Note</string>
     <string name="delete_contact">Delete contact</string>
     <string name="delete_contact_title">Delete “%1$s”?</string>
-    <string name="delete_contact_text">The contact is deleted from this phone and from every account it is saved in. This cannot be undone.</string>
+    <string name="delete_contact_text">The contact goes to the trash for %1$d days. It is removed from this phone and every account where it is saved; if it is on your server, from there too on the next sync. Restoring it uploads it again.</string>
     <string name="choose_photo">Choose photo</string>
     <string name="add_photo">Add photo</string>
     <string name="change_photo">Change photo</string>
@@ -369,5 +369,49 @@
     <plurals name="first_sync_done">
         <item quantity="one">%d contact downloaded</item>
         <item quantity="other">%d contacts downloaded</item>
+    </plurals>
+    <string name="server_nickname">Server nickname (optional)</string>
+    <string name="trash">Trash</string>
+    <string name="trash_empty_short">Empty</string>
+    <string name="trash_empty">The trash is empty</string>
+    <string name="trash_empty_hint">Contacts you delete from this app end up here.</string>
+    <string name="trash_hint">Contacts deleted from this app stay here for %1$d days, then they are removed automatically. Anything deleted in another app or on the server does not arrive here.</string>
+    <string name="trash_restore">Restore</string>
+    <string name="trash_restored">“%1$s” restored</string>
+    <string name="trash_restore_failed">Could not restore “%1$s”</string>
+    <string name="trash_forever">Delete forever</string>
+    <string name="trash_forever_title">Delete “%1$s” forever?</string>
+    <string name="trash_forever_text">This cannot be undone.</string>
+    <string name="trash_empty_action">Empty trash</string>
+    <string name="trash_empty_title">Empty the trash?</string>
+    <string name="delete_failed">The copy could not be saved: the contact was not deleted.</string>
+    <string name="add_label">Add label</string>
+    <string name="label_added">Added to “%1$s”</string>
+    <string name="label_add_failed">Could not add to “%1$s”</string>
+    <string name="select">Select</string>
+    <string name="select_all">Select all</string>
+    <string name="selection_exit">Exit selection</string>
+    <string name="view_photo">View photo</string>
+    <string name="open_contact">Open contact</string>
+    <string name="photo_of">Photo of %1$s</string>
+    <string name="close">Close</string>
+    <string name="save_in_no_book">To save on your server, turn on an address book in Settings › CardDAV server.</string>
+    <string name="dropdown_open">Expanded</string>
+    <string name="dropdown_closed">Collapsed</string>
+    <plurals name="delete_many_title">
+        <item quantity="one">Delete %d contact?</item>
+        <item quantity="other">Delete %d contacts?</item>
+    </plurals>
+    <plurals name="moved_to_trash">
+        <item quantity="one">%d contact in the trash</item>
+        <item quantity="other">%d contacts in the trash</item>
+    </plurals>
+    <plurals name="selected_count">
+        <item quantity="one">%d selected</item>
+        <item quantity="other">%d selected</item>
+    </plurals>
+    <plurals name="trash_days_left">
+        <item quantity="one">Deleted in %d day</item>
+        <item quantity="other">Deleted in %d days</item>
     </plurals>
 </resources>

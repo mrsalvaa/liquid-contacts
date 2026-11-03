@@ -59,6 +59,7 @@ object Repo {
     fun init(context: Context) {
         app = context.applicationContext
         contacts = SystemContacts(app)
+        Trash.init(app)
         // País por defecto: la primera vez, el de la SIM (no el de la red, que cambia al viajar).
         if (Stores.settings.value.defaultCountry.isEmpty()) {
             Stores.settings.update { it.copy(defaultCountry = simCountry(app)) }
@@ -76,6 +77,19 @@ object Repo {
         return contacts.accounts(SyncEngine.store.value.books.filter { it.firstSyncDone }.map { ContactAccount(type, it.accountName) })
     }
 
+    /**
+     * Donde se puede guardar: sin las libretas de solo lectura ni las cuentas cuyo sincronizador no
+     * sube cambios (por ejemplo, las de apps de mensajería, que solo publican sus propias fichas).
+     */
+    fun writableAccounts(): List<ContactAccount> {
+        val readOnlyBooks = SyncEngine.store.value.books.filter { it.readOnly }.map { it.accountName }
+        val type = app.getString(R.string.account_type)
+        val noUpload = android.content.ContentResolver.getSyncAdapterTypes()
+            .filter { it.authority == android.provider.ContactsContract.AUTHORITY && !it.supportsUploading() }
+            .map { it.accountType }
+        return allAccounts().filterNot { (it.type == type && it.name in readOnlyBooks) || it.type in noUpload }
+    }
+
     fun hasPermission(): Boolean =
         listOf(Manifest.permission.READ_CONTACTS, Manifest.permission.WRITE_CONTACTS)
             .all { app.checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED }
@@ -84,6 +98,7 @@ object Repo {
     @OptIn(FlowPreview::class)
     fun start() {
         if (watching != null || !hasPermission()) return
+        scope.launch { runCatching { Trash.cleanUp() } }
         watching = scope.launch {
             // Un guardado o una sincronización generan varios avisos seguidos: se lee una vez.
             contacts.changes().debounce(250).collect {

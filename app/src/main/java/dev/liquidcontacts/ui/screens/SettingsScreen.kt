@@ -43,6 +43,7 @@ import dev.liquidcontacts.core.phone.PhoneNumbers
 import dev.liquidcontacts.core.text.Fold
 import dev.liquidcontacts.core.vcard.VCardImport
 import dev.liquidcontacts.data.Repo
+import dev.liquidcontacts.data.Trash
 import dev.liquidcontacts.data.VcfFiles
 import dev.liquidcontacts.data.Stores
 import dev.liquidcontacts.sync.SyncEngine
@@ -66,7 +67,7 @@ import java.util.Locale
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun SettingsScreen(padding: PaddingValues, onBack: () -> Unit, toAreaCode: Boolean = false, onDuplicates: () -> Unit, onImport: (VCardImport.Ok) -> Unit, onExport: () -> Unit, onServer: () -> Unit) {
+fun SettingsScreen(padding: PaddingValues, onBack: () -> Unit, toAreaCode: Boolean = false, onDuplicates: () -> Unit, onImport: (VCardImport.Ok) -> Unit, onExport: () -> Unit, onServer: () -> Unit, onTrash: () -> Unit) {
     val p = LocalGlass.current
     val context = LocalContext.current
     val dialog = LocalDialog.current
@@ -96,7 +97,7 @@ fun SettingsScreen(padding: PaddingValues, onBack: () -> Unit, toAreaCode: Boole
         withContext(Dispatchers.IO) {
             val loc = Repo.contacts.localAccount()
             local = loc
-            accounts = (listOf(loc) + Repo.allAccounts()).distinct()
+            accounts = (listOf(loc) + Repo.writableAccounts()).distinct()
         }
     }
 
@@ -122,6 +123,16 @@ fun SettingsScreen(padding: PaddingValues, onBack: () -> Unit, toAreaCode: Boole
 
     Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp).verticalScroll(rememberScrollState())) {
         BackTitle(str(R.string.settings), onBack)
+
+        SectionLabel(str(R.string.server_section))
+        GlassCard {
+            val server by SyncEngine.store.state.collectAsStateWithLifecycle()
+            SettingRow(
+                str(R.string.server_title),
+                subtitle = if (server.configured) listOf(server.nickname, server.url).filter { it.isNotEmpty() }.joinToString(" · ") else str(R.string.server_none),
+                onClick = onServer,
+            )
+        }
 
         SectionLabel(str(R.string.appearance))
         AppearanceCard(s, edit)
@@ -175,14 +186,10 @@ fun SettingsScreen(padding: PaddingValues, onBack: () -> Unit, toAreaCode: Boole
             }
         }
 
-        SectionLabel(str(R.string.server_section))
-        GlassCard {
-            val server by SyncEngine.store.state.collectAsStateWithLifecycle()
-            SettingRow(str(R.string.server_title), subtitle = if (server.configured) server.url else str(R.string.server_none), onClick = onServer)
-        }
-
         SectionLabel(str(R.string.tools))
         GlassCard {
+            val trash by Trash.store.state.collectAsStateWithLifecycle()
+            SettingRow(str(R.string.trash), subtitle = if (trash.entries.isEmpty()) str(R.string.trash_empty_short) else plural(R.plurals.contacts_count, trash.entries.size), onClick = onTrash)
             SettingRow(str(R.string.import_vcf), subtitle = str(R.string.import_vcf_hint), onClick = { pickFile.launch(VcfFiles.OPEN_TYPES) })
             SettingRow(str(R.string.export_vcf), subtitle = str(R.string.export_vcf_hint), onClick = onExport)
             SettingRow(str(R.string.duplicates), subtitle = str(R.string.duplicates_hint), onClick = onDuplicates)

@@ -41,6 +41,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import dev.liquidcontacts.sync.SyncEngine
+import dev.liquidcontacts.core.text.SpanishOrder
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
@@ -126,7 +133,7 @@ fun ContactEditScreen(target: EditTarget, padding: PaddingValues, onBack: () -> 
         withContext(Dispatchers.IO) {
             val loc = Repo.contacts.localAccount()
             local = loc
-            accounts = (listOf(loc) + Repo.allAccounts()).distinct()
+            accounts = (listOf(loc) + Repo.writableAccounts()).distinct()
             val preferred = Stores.settings.value.newContactAccount.takeIf { it.isNotEmpty() }?.let(ContactAccount::fromId)
             when (target) {
                 is EditTarget.Existing -> Repo.contacts.loadForEdit(target.contactId, preferred, rawChoice)?.let {
@@ -266,10 +273,14 @@ fun ContactEditScreen(target: EditTarget, padding: PaddingValues, onBack: () -> 
                 }
             }
             Text(str(R.string.fichas_hint), Modifier.padding(horizontal = 8.dp, vertical = 6.dp), fontSize = 13.sp, color = p.contentSecondary)
-        } else if (original == null && accounts.size > 1) {
+        } else if (original == null && account != null) {
             SectionLabel(str(R.string.save_in))
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                accounts.forEach { a -> GlassChip(Labels.account(a, local), a == account, { account = a }) }
+            val order = remember { SpanishOrder() }
+            val options = accounts.map { it to Labels.account(it, local) }.sortedWith { a, b -> order.compare(a.second, b.second) }
+            AccountDropdown(options, account!!) { account = it }
+            val server = SyncEngine.store.value
+            if (server.configured && server.books.none { it.firstSyncDone && !it.readOnly }) {
+                Text(str(R.string.save_in_no_book), Modifier.padding(horizontal = 8.dp, vertical = 6.dp), fontSize = 13.sp, color = p.contentSecondary)
             }
         } else if (account != null) {
             Text(
@@ -584,5 +595,33 @@ private fun downscaledJpeg(resolver: ContentResolver, uri: Uri): ByteArray {
     return ByteArrayOutputStream().use { s ->
         out.compress(Bitmap.CompressFormat.JPEG, 88, s)
         s.toByteArray()
+    }
+}
+
+/** Desplegable de cuentas: muestra la elegida y, al tocarlo, las demás (ya ordenadas). */
+@Composable
+private fun AccountDropdown(options: List<Pair<ContactAccount, String>>, selected: ContactAccount, onPick: (ContactAccount) -> Unit) {
+    val p = LocalGlass.current
+    var open by rememberSaveable { mutableStateOf(false) }
+    val state = str(if (open) R.string.dropdown_open else R.string.dropdown_closed)
+    GlassCard {
+        SettingRow(
+            options.firstOrNull { it.first == selected }?.second.orEmpty(),
+            Modifier.semantics { stateDescription = state },
+            onClick = { open = !open },
+            trailing = { Icon(if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, null, tint = p.contentSecondary) },
+        )
+        if (open) {
+            options.forEach { (a, label) ->
+                SettingRow(
+                    label,
+                    onClick = {
+                        onPick(a)
+                        open = false
+                    },
+                    trailing = if (a == selected) ({ Icon(Icons.Rounded.Check, null, tint = p.accentFg) }) else null,
+                )
+            }
+        }
     }
 }

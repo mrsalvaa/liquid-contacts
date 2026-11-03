@@ -13,6 +13,7 @@ otra app los ve.
 - Sin telemetría, estadísticas, informes de fallos, publicidad ni Google Play Services. 100 % software libre.
 - La única conexión que puede hacer la app es al servidor opcional que configures vos. Sin él, ninguna.
 - Tus contactos quedan en la agenda del teléfono. Sin copias de seguridad ni transferencia de los datos de la app.
+- La papelera es una copia de los contactos borrados, con su foto, en los archivos privados de la app. Se elimina sola a los 30 días o cuando la vaciás.
 
 ## Funciones
 
@@ -103,6 +104,7 @@ Solo si lo activás, y solo hacia direcciones de red local o VPN (IP privadas, `
 
 ## Limitaciones conocidas
 
+- **Papelera:** solo guarda lo que se borra desde esta app; lo que se borre en otra app o en el servidor no llega ahí. Guarda los datos que la app maneja: lo que otras apps agregaron a un contacto de este celular (por ejemplo, datos de una app de mensajería) no vuelve al restaurarlo. Un contacto del servidor conserva toda su vCard, pero vuelve como tarjeta nueva, con otro UID.
 - **Deshacer** una unión dura 10 segundos y es una copia en memoria: se pierde si se cierra la app. Restaura los datos de los contactos, pero los recreados tienen otro id, así que **no se recupera lo que otras apps tenían vinculado a ellos**.
 - **Deshacer después de importar** solo revierte las uniones con contactos existentes; los contactos nuevos quedan (se pueden borrar).
 - **"Insertar o editar" desde otra app** (`ACTION_INSERT_OR_EDIT`) siempre abre el formulario de un **contacto nuevo**; no ofrece elegir uno existente. Un `ACTION_EDIT` con un contacto abre ese contacto. Nada se guarda hasta que tocás guardar.

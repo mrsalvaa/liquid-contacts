@@ -12,6 +12,7 @@ Clock, Gallery, Calc). Your contacts stay in the system address book, so any oth
 - No telemetry, analytics, crash reporting, ads or Google Play Services. 100% free software.
 - The only connection the app can make is to the optional server you configure yourself. Without one, none.
 - Your contacts stay in the phone's address book. No backups or device transfer of the app's data.
+- The trash is a copy of deleted contacts, with their photo, in the app's private files. It is removed after 30 days or when you empty it.
 
 ## Features
 
@@ -101,6 +102,7 @@ Only if you turn it on, and only to local network or VPN addresses (private IPs,
 
 ## Known limitations
 
+- **Trash:** it only keeps what is deleted from this app; anything deleted in another app or on the server does not arrive there. It keeps the data the app handles: what other apps added to a contact on this phone (such as a messaging app's data) doesn't come back on restore. A server contact keeps its whole vCard, but returns as a new card with a different UID.
 - **Undo** of a merge lasts 10 seconds and is a copy in memory: it is lost if the app is closed. It restores the contacts' data, but recreated contacts get a new id, so **whatever other apps had linked to them is not recovered**.
 - **Undo after an import** only reverts merges into existing contacts; new contacts stay (you can delete them).
 - **"Insert or edit" from another app** (`ACTION_INSERT_OR_EDIT`) always opens a **new contact** form; it doesn't offer choosing an existing one. A plain `ACTION_EDIT` with a contact opens that contact. Nothing is saved until you tap save.

@@ -93,6 +93,7 @@ import dev.liquidcontacts.ui.glass.SheetSpec
 import dev.liquidcontacts.ui.glass.isDarkTheme
 import dev.liquidcontacts.ui.screens.ConflictsScreen
 import dev.liquidcontacts.ui.screens.ContactDetailScreen
+import dev.liquidcontacts.ui.screens.ContactNav
 import dev.liquidcontacts.ui.screens.ContactEditScreen
 import dev.liquidcontacts.ui.screens.ContactsTab
 import dev.liquidcontacts.ui.screens.DuplicatesScreen
@@ -106,10 +107,12 @@ import dev.liquidcontacts.ui.screens.LabelsTab
 import dev.liquidcontacts.ui.screens.LocalToast
 import dev.liquidcontacts.ui.screens.MergeScreen
 import dev.liquidcontacts.ui.screens.PermissionScreen
+import dev.liquidcontacts.ui.screens.PhotoScreen
 import dev.liquidcontacts.ui.screens.ServerScreen
 import dev.liquidcontacts.ui.screens.SettingsScreen
 import dev.liquidcontacts.ui.screens.TabContext
 import dev.liquidcontacts.ui.screens.ToastHost
+import dev.liquidcontacts.ui.screens.TrashScreen
 import dev.liquidcontacts.util.preferHighestRefreshRate
 import dev.liquidcontacts.util.str
 
@@ -126,6 +129,8 @@ sealed interface Overlay {
     data object Server : Overlay
     data class FirstSync(val book: RemoteBook) : Overlay
     data class Conflicts(val bookUrl: String) : Overlay
+    data object Trash : Overlay
+    data class Photo(val contactId: Long, val name: String) : Overlay
 }
 
 private const val TAB_CONTACTS = 0
@@ -222,6 +227,14 @@ fun ContactsUi(
         start = insets.calculateStartPadding(dir),
         end = insets.calculateEndPadding(dir),
     )
+    val contactNav = remember {
+        ContactNav(
+            onOpen = { push(Overlay.Detail(it)) },
+            onEdit = { push(Overlay.Edit(EditTarget.Existing(it))) },
+            onPhoto = { id, name -> push(Overlay.Photo(id, name)) },
+            onMerge = { push(Overlay.Merge(it, preselected = true)) },
+        )
+    }
     val tabContext = TabContext(
         padding = tabPadding,
         onContact = { push(Overlay.Detail(it)) },
@@ -229,6 +242,7 @@ fun ContactsUi(
         onAreaCode = { push(Overlay.Settings(toAreaCode = true)) },
         onLabel = { push(Overlay.Label(it)) },
         onServer = { push(Overlay.Server) },
+        nav = contactNav,
     )
 
     CompositionLocalProvider(
@@ -329,13 +343,15 @@ fun ContactsUi(
                 }
                 holder.SaveableStateProvider(key) {
                     when (current) {
-                        is Overlay.Settings -> SettingsScreen(overlayPadding, ::pop, current.toAreaCode, onDuplicates = { push(Overlay.Duplicates) }, onImport = { push(Overlay.Import(it)) }, onExport = { push(Overlay.Export) }, onServer = { push(Overlay.Server) })
+                        is Overlay.Settings -> SettingsScreen(overlayPadding, ::pop, current.toAreaCode, onDuplicates = { push(Overlay.Duplicates) }, onImport = { push(Overlay.Import(it)) }, onExport = { push(Overlay.Export) }, onServer = { push(Overlay.Server) }, onTrash = { push(Overlay.Trash) })
                         is Overlay.Import -> ImportScreen(current.data, overlayPadding, ::pop)
                         Overlay.Export -> ExportScreen(overlayPadding, ::pop)
                         Overlay.Server -> ServerScreen(overlayPadding, ::pop, onFirstSync = { push(Overlay.FirstSync(it)) }, onConflicts = { push(Overlay.Conflicts(it)) })
                         is Overlay.FirstSync -> FirstSyncScreen(current.book, overlayPadding, ::pop)
                         is Overlay.Conflicts -> ConflictsScreen(current.bookUrl, overlayPadding, ::pop)
-                        is Overlay.Detail -> ContactDetailScreen(current.contactId, overlayPadding, ::pop, onEdit = { push(Overlay.Edit(EditTarget.Existing(current.contactId))) })
+                        is Overlay.Detail -> ContactDetailScreen(current.contactId, overlayPadding, ::pop, contactNav)
+                        Overlay.Trash -> TrashScreen(overlayPadding, ::pop)
+                        is Overlay.Photo -> PhotoScreen(current.contactId, current.name, overlayPadding, ::pop)
                         is Overlay.Edit -> ContactEditScreen(current.target, overlayPadding, ::pop, onSaved = { id ->
                             // Si lo pidió otra app, se le devuelve el contacto guardado y se cierra.
                             if (isExternal && stack.size == 1) {
@@ -346,7 +362,7 @@ fun ContactsUi(
                             // Un contacto nuevo se abre al guardarlo; uno editado vuelve a su detalle.
                             if (current.target is EditTarget.New && id != null) push(Overlay.Detail(id))
                         })
-                        is Overlay.Label -> LabelScreen(current.group, overlayPadding, ::pop, onContact = { push(Overlay.Detail(it)) })
+                        is Overlay.Label -> LabelScreen(current.group, overlayPadding, ::pop, contactNav)
                         Overlay.Duplicates -> DuplicatesScreen(overlayPadding, ::pop) { ids, preselected -> push(Overlay.Merge(ids, preselected)) }
                         is Overlay.Merge -> MergeScreen(current.contactIds, current.preselected, overlayPadding, ::pop)
                     }

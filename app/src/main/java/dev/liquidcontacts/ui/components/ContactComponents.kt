@@ -34,6 +34,9 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.ui.semantics.selected
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Search
@@ -180,6 +183,13 @@ fun ContactRow(
     starred: Boolean = false,
     starredLabel: String = "",
     trailing: @Composable (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
+    onPhotoClick: (() -> Unit)? = null,
+    onPhotoLongClick: (() -> Unit)? = null,
+    photoLabel: String? = null,
+    selectLabel: String? = null,
+    /** null = la lista no está en selección múltiple. */
+    selected: Boolean? = null,
 ) {
     val p = LocalGlass.current
     Row(
@@ -187,15 +197,46 @@ fun ContactRow(
             .fillMaxWidth()
             .heightIn(min = 64.dp)
             .clip(RoundedCorner)
-            .clickable(remember { MutableInteractionSource() }, null, role = Role.Button, onClick = onClick)
+            .combinedClickable(remember { MutableInteractionSource() }, null, role = Role.Button, onLongClick = onLongClick, onClick = onClick)
             .semantics(mergeDescendants = true) {
                 contentDescription = listOfNotNull(name, subtitle, starredLabel.takeIf { starred && it.isNotEmpty() }).joinToString(", ")
+                if (selected != null) this.selected = selected
             }
             .padding(horizontal = 8.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        ContactAvatar(name, photoUri = photoUri)
-        Spacer(Modifier.width(14.dp))
+        val avatar = @Composable {
+            if (selected == true) {
+                Box(Modifier.size(44.dp).clip(CircleShape).background(p.accentFg), contentAlignment = Alignment.Center) {
+                    Icon(styled(Icons.Rounded.Check), null, Modifier.size(26.dp), tint = readableOn(p.accentFg))
+                }
+            } else {
+                ContactAvatar(name, photoUri = photoUri)
+            }
+        }
+        if (onPhotoClick != null) {
+            // Botón propio de 48 dp: tocar la foto no es lo mismo que tocar la fila.
+            Box(
+                Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .combinedClickable(
+                        remember { MutableInteractionSource() },
+                        null,
+                        role = Role.Button,
+                        onClickLabel = photoLabel,
+                        onLongClickLabel = selectLabel,
+                        onLongClick = onPhotoLongClick,
+                        onClick = onPhotoClick,
+                    )
+                    .semantics { contentDescription = photoLabel.orEmpty() },
+                contentAlignment = Alignment.Center,
+            ) { avatar() }
+            Spacer(Modifier.width(12.dp))
+        } else {
+            avatar()
+            Spacer(Modifier.width(14.dp))
+        }
         Column(Modifier.weight(1f)) {
             Text(name, fontSize = 17.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (!subtitle.isNullOrBlank()) {

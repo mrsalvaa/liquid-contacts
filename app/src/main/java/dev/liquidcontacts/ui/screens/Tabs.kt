@@ -51,7 +51,6 @@ import dev.liquidcontacts.sync.SyncEngine
 import dev.liquidcontacts.ui.components.DangerButton
 import dev.liquidcontacts.ui.components.dangerText
 import dev.liquidcontacts.ui.components.AlphabetIndex
-import dev.liquidcontacts.ui.components.ContactRow
 import dev.liquidcontacts.ui.components.LetterHeader
 import dev.liquidcontacts.ui.components.NoticeCard
 import dev.liquidcontacts.ui.components.SearchField
@@ -62,6 +61,7 @@ import dev.liquidcontacts.ui.glass.LocalActionSheet
 import dev.liquidcontacts.ui.glass.LocalDialog
 import dev.liquidcontacts.ui.glass.LocalGlass
 import dev.liquidcontacts.ui.glass.LocalPrompt
+import dev.liquidcontacts.ui.glass.LocalTabActive
 import dev.liquidcontacts.ui.glass.PromptSpec
 import dev.liquidcontacts.ui.glass.ScreenTitle
 import dev.liquidcontacts.ui.glass.SettingRow
@@ -81,6 +81,7 @@ class TabContext(
     val onAreaCode: () -> Unit,
     val onLabel: (ContactGroup) -> Unit,
     val onServer: () -> Unit,
+    val nav: ContactNav,
 )
 
 // ---------------------------------------------------------------- permiso
@@ -128,10 +129,25 @@ fun ContactsTab(ctx: TabContext) {
     val scope = rememberCoroutineScope()
     val focus = LocalFocusManager.current
     // Al irse de la lista se cierra el teclado de la búsqueda.
-    val open: (Long) -> Unit = { id ->
-        focus.clearFocus()
-        ctx.onContact(id)
+    val selection = remember { ContactSelection() }
+    val nav = remember(ctx.nav) {
+        ContactNav(
+            onOpen = { id ->
+                focus.clearFocus()
+                ctx.nav.onOpen(id)
+            },
+            onEdit = { id ->
+                focus.clearFocus()
+                ctx.nav.onEdit(id)
+            },
+            onPhoto = { id, name ->
+                focus.clearFocus()
+                ctx.nav.onPhoto(id, name)
+            },
+            onMerge = ctx.nav.onMerge,
+        )
     }
+    val actions = rememberContactActions(nav)
 
     // Resultados de la búsqueda (en segundo plano: con miles de contactos se nota).
     var results by remember { mutableStateOf<List<Row>?>(null) }
@@ -237,13 +253,11 @@ fun ContactsTab(ctx: TabContext) {
                     last = letter
                 }
                 item(key = r.summary.id, contentType = "row") {
-                    ContactRow(
-                        r.summary.displayName.ifBlank { str(R.string.no_name) },
-                        { open(r.summary.id) },
+                    SelectableContactRow(
+                        r.summary,
+                        selection,
+                        actions,
                         subtitle = if (results != null) r.summary.phones.firstOrNull()?.let(numbers::format) else null,
-                        photoUri = r.summary.photoUri,
-                        starred = r.summary.starred,
-                        starredLabel = str(R.string.favorite),
                     )
                 }
             }
@@ -264,6 +278,13 @@ fun ContactsTab(ctx: TabContext) {
                 jumpLabel = { str(R.string.jump_to_letter, it) },
             )
         }
+        SelectionBar(
+            selection,
+            shown.map { it.summary },
+            actions,
+            Modifier.align(Alignment.TopCenter).padding(top = ctx.padding.calculateTopPadding() + 8.dp, start = 16.dp, end = 16.dp),
+            backEnabled = LocalTabActive.current,
+        )
     }
 }
 
@@ -273,6 +294,9 @@ fun ContactsTab(ctx: TabContext) {
 fun FavoritesTab(ctx: TabContext) {
     val book by Repo.book.collectAsStateWithLifecycle()
     val favorites = remember(book) { book.rows.filter { it.summary.starred } }
+    val selection = remember { ContactSelection() }
+    val actions = rememberContactActions(ctx.nav)
+    Box(Modifier.fillMaxSize()) {
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
@@ -287,8 +311,16 @@ fun FavoritesTab(ctx: TabContext) {
             item(key = "empty") { EmptyState(str(R.string.no_favorites), str(R.string.no_favorites_hint)) }
         }
         items(favorites, key = { it.summary.id }, contentType = { "row" }) { r ->
-            ContactRow(r.summary.displayName.ifBlank { str(R.string.no_name) }, { ctx.onContact(r.summary.id) }, photoUri = r.summary.photoUri)
+            SelectableContactRow(r.summary, selection, actions, showStar = false)
         }
+    }
+    SelectionBar(
+        selection,
+        favorites.map { it.summary },
+        actions,
+        Modifier.align(Alignment.TopCenter).padding(top = ctx.padding.calculateTopPadding() + 8.dp, start = 16.dp, end = 16.dp),
+        backEnabled = LocalTabActive.current,
+    )
     }
 }
 
@@ -374,7 +406,7 @@ fun LabelsTab(ctx: TabContext) {
                             }),
                             subtitle = listOfNotNull(
                                 plural(R.plurals.contacts_count, g.count),
-                                g.account.name?.takeIf { g.title in repeated },
+                                Labels.account(g.account, local.value).takeIf { g.title in repeated },
                             ).joinToString(" · "),
                         )
                     }
@@ -393,11 +425,14 @@ fun LabelsTab(ctx: TabContext) {
 }
 
 @Composable
-fun LabelScreen(group: ContactGroup, padding: PaddingValues, onBack: () -> Unit, onContact: (Long) -> Unit) {
+fun LabelScreen(group: ContactGroup, padding: PaddingValues, onBack: () -> Unit, nav: ContactNav) {
     val book by Repo.book.collectAsStateWithLifecycle()
     var members by remember { mutableStateOf<Set<Long>?>(null) }
     LaunchedEffect(book) { members = withContext(Dispatchers.IO) { Repo.contacts.groupMembers(group.id) } }
     val rows = remember(book, members) { members?.let { m -> book.rows.filter { it.summary.id in m } } }
+    val selection = remember { ContactSelection() }
+    val actions = rememberContactActions(nav)
+    Box(Modifier.fillMaxSize()) {
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(top = padding.calculateTopPadding(), bottom = padding.calculateBottomPadding(), start = 16.dp, end = 16.dp),
@@ -406,7 +441,14 @@ fun LabelScreen(group: ContactGroup, padding: PaddingValues, onBack: () -> Unit,
         item(key = "title") { BackTitle(group.title, onBack, subtitle = rows?.let { plural(R.plurals.contacts_count, it.size) }) }
         if (rows != null && rows.isEmpty()) item(key = "empty") { EmptyState(str(R.string.label_empty), str(R.string.label_empty_hint)) }
         items(rows.orEmpty(), key = { it.summary.id }) { r ->
-            ContactRow(r.summary.displayName.ifBlank { str(R.string.no_name) }, { onContact(r.summary.id) }, photoUri = r.summary.photoUri, starred = r.summary.starred, starredLabel = str(R.string.favorite))
+            SelectableContactRow(r.summary, selection, actions)
         }
+    }
+    SelectionBar(
+        selection,
+        rows.orEmpty().map { it.summary },
+        actions,
+        Modifier.align(Alignment.TopCenter).padding(top = padding.calculateTopPadding() + 8.dp, start = 16.dp, end = 16.dp),
+    )
     }
 }

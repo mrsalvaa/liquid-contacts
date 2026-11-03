@@ -44,6 +44,8 @@ data class BookState(
 @Serializable
 data class ServerState(
     val url: String = "",
+    /** Apodo que elige el usuario, para reconocer el servidor en la app. */
+    val nickname: String = "",
     val username: String = "",
     val allowHttp: Boolean = false,
     /** Huella SHA-256 fijada, o CA importada en PEM (nunca las dos). */
