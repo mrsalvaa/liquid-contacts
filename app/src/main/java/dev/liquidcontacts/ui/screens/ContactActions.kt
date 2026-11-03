@@ -29,6 +29,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import dev.liquidcontacts.ui.glass.FlatNavBarHeight
 import dev.liquidcontacts.ui.glass.GlassSurface
+import dev.liquidcontacts.ui.glass.pillVeil
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -397,6 +398,7 @@ fun SelectionTop(bottom: SelectionBottom, flat: Boolean, topInset: Dp, modifier:
             modifier.padding(top = topInset + 8.dp, start = 16.dp, end = 16.dp).fillMaxWidth(),
             shape = CircleShape,
             strong = true,
+            tint = p.pillVeil(),
             frost = PILL_FROST,
         ) {
             row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp))
@@ -428,6 +430,7 @@ fun SelectionActions(bottom: SelectionBottom, flat: Boolean, modifier: Modifier 
             modifier.navigationBarsPadding().padding(horizontal = 16.dp, vertical = 12.dp).fillMaxWidth().height(70.dp),
             shape = CircleShape,
             strong = true,
+            tint = p.pillVeil(),
             frost = PILL_FROST,
         ) {
             row(Modifier.fillMaxSize().padding(horizontal = 6.dp))

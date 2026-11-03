@@ -15,6 +15,25 @@ el encabezado SPDX. De ese mismo commit salen `ui/screens/AppearanceCard.kt`,
 
 Colores, formas, blur y animaciones están descritos en el `DESIGN.md` de Liquid Calc.
 
+## Valores de referencia del cristal
+
+Contacts y Calendar tienen el `ui/glass` de referencia; Clock, Gallery y Calc se comparan contra él. Cada fila es lo que debe verse igual en toda la suite.
+
+| Fondo o estilo | `tint` | `tintStrong` | Notas |
+|---|---|---|---|
+| Movimiento y color de énfasis, claro | blanco 32 % | blanco 50 % | `LightGlass`, con manchas (`blobs`) |
+| Movimiento y color de énfasis, oscuro | `#0A0C12` 28 % | `#0A0C12` 42 % | `DarkGlass`, con manchas (`blobs`) |
+| Liso, claro | blanco 70 % | blanco 85 % | `PlainLightGlass`, base `#F2F3F5`, acento `#1A73E8` |
+| Liso, oscuro | blanco 5 % | blanco 9 % | `PlainDarkGlass`, base `#0E0F12`, acento `#8AB4F8` |
+| Sólido | opaco | opaco | `SolidLight` y `SolidDark`, sin efectos |
+
+**Píldoras flotantes** (pestañas y las dos de la selección múltiple): `CircleShape`, `strong = true`, `frost = 4.dp`, `tint = p.pillVeil()`.
+
+- `pillVeil()` baja el velo a blanco 30 % solo en Liquid, claro y liso; en los demás casos usa el de la paleta. Con 85 % la refracción casi no se ve.
+- Tienen que ir en el slot `floating` de `GlassRoot`: es el único que ve la lista por debajo. Dentro de la página solo se ve el fondo y, en Liso, parecen sólidas.
+- Liso es `backgroundMode == 2`; `animatedBackground` no tiene que ver.
+
+
 ## Ajustes
 
 `data/AppSettings.kt` guarda en `files/settings.json` los 8 campos de personalización de la suite,

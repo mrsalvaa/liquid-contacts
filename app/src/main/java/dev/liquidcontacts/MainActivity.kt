@@ -55,7 +55,6 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerInputScope
@@ -84,7 +83,6 @@ import dev.liquidcontacts.ui.glass.GlassRoot
 import dev.liquidcontacts.ui.glass.GlassTheme
 import dev.liquidcontacts.ui.glass.LocalActionSheet
 import dev.liquidcontacts.ui.glass.LocalDialog
-import dev.liquidcontacts.ui.glass.LocalGlass
 import dev.liquidcontacts.ui.glass.LocalPrompt
 import dev.liquidcontacts.ui.glass.LocalReducedMotion
 import dev.liquidcontacts.ui.glass.LocalTabActive
@@ -277,15 +275,13 @@ fun ContactsUi(
                         if (flatNav) {
                             FlatNavBar(navItems, selected = tab, onSelect = { tab = it })
                         } else {
-                            PillGlass {
-                                GlassNavBar(
-                                    items = navItems,
-                                    selected = tab,
-                                    dragPosition = { tabDrag },
-                                    onSelect = { tab = it },
-                                    modifier = Modifier.navigationBarsPadding().padding(horizontal = 16.dp, vertical = 12.dp),
-                                )
-                            }
+                            GlassNavBar(
+                                items = navItems,
+                                selected = tab,
+                                dragPosition = { tabDrag },
+                                onSelect = { tab = it },
+                                modifier = Modifier.navigationBarsPadding().padding(horizontal = 16.dp, vertical = 12.dp),
+                            )
                         }
                     }
                     AnimatedVisibility(
@@ -306,7 +302,7 @@ fun ContactsUi(
                     enter = fadeIn() + if (reduced) fadeIn() else slideInVertically { it / 2 },
                     exit = fadeOut() + if (reduced) fadeOut() else slideOutVertically { it / 2 },
                 ) {
-                    lastBottom?.let { PillGlass { SelectionActions(it, flatNav) } }
+                    lastBottom?.let { SelectionActions(it, flatNav) }
                 }
                 AnimatedVisibility(
                     selectionBottom != null,
@@ -314,7 +310,7 @@ fun ContactsUi(
                     enter = fadeIn() + if (reduced) fadeIn() else slideInVertically { -it / 2 },
                     exit = fadeOut() + if (reduced) fadeOut() else slideOutVertically { -it / 2 },
                 ) {
-                    lastBottom?.let { PillGlass { SelectionTop(it, flatNav, insets.calculateTopPadding()) } }
+                    lastBottom?.let { SelectionTop(it, flatNav, insets.calculateTopPadding()) }
                 }
                 ToastHost(toast) { toast = null }
                 UndoHost(undo) { undo = null }
@@ -398,22 +394,6 @@ fun ContactsUi(
         }
     }
 }
-
-/**
- * Las tres píldoras flotantes. Con fondo liso en claro la paleta lleva 85 % de velo blanco y tapa la
- * refracción (en oscuro son 9 %): ahí, y solo ahí, llevan menos velo para que se note lo de atrás.
- */
-@Composable
-private fun PillGlass(content: @Composable () -> Unit) {
-    val p = LocalGlass.current
-    if (p.dark || p.solid || p.blobs.isNotEmpty()) {
-        content()
-    } else {
-        CompositionLocalProvider(LocalGlass provides p.copy(tintStrong = Color.White.copy(alpha = LIGHT_PLAIN_PILL_VEIL)), content = content)
-    }
-}
-
-private const val LIGHT_PLAIN_PILL_VEIL = 0.3f
 
 /** Se traga todos los toques (para las pestañas que quedan debajo de otra pantalla). */
 private suspend fun PointerInputScope.swallowTouches() {

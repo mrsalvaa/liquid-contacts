@@ -243,6 +243,13 @@ val SolidLight = LightGlass.copy(
     outline = Color.Black.copy(alpha = 0.06f),
 )
 
+/**
+ * Velo de las píldoras flotantes (la de pestañas y las de selección). Con fondo liso en claro la
+ * paleta lleva 85 % de blanco y tapa la refracción, que en oscuro sí se ve (9 %): ahí, y solo ahí,
+ * llevan menos para que se note lo que pasa por debajo. null = el velo normal de la paleta.
+ */
+fun GlassPalette.pillVeil(): Color? = if (!dark && !solid && blobs.isEmpty()) Color.White.copy(alpha = 0.3f) else null
+
 val LocalGlass = staticCompositionLocalOf { DarkGlass }
 
 /** false en las pestañas ocultas: sirve para pausar lo que se refresca en cada fotograma. */
