@@ -19,6 +19,18 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.State
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.liquidcontacts.data.Stores
+import dev.liquidcontacts.ui.glass.FlatNavBarHeight
+import dev.liquidcontacts.ui.glass.GlassSurface
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -279,83 +291,153 @@ fun SelectableContactRow(
     )
 }
 
+/** Una opción de la barra de abajo en la selección múltiple. */
+class BarItem(val icon: ImageVector, val label: String, val description: String, val enabled: Boolean, val onClick: () -> Unit)
+
+/** Las opciones de la lista que está seleccionando; las pinta [SelectionActions] en lugar de la píldora. */
+class SelectionBottom(val items: State<List<BarItem>>)
+
+val LocalSelectionBottom = staticCompositionLocalOf<(SelectionBottom?) -> Unit> { {} }
+
 /**
- * Barra de la selección múltiple: un panel opaco que tapa el título, sin cristal, porque la lista
- * que pasa por debajo no dejaba leer los botones. [all] son los contactos que se ven.
+ * Selección múltiple, arriba: cuántos hay, Todos y Ninguno. Mientras está activa, la píldora de
+ * abajo pasa a tener las opciones ([SelectionActions]) y el botón de contacto nuevo se va.
+ * [all] son los contactos que se ven. El botón Atrás sale de la selección.
  */
 @Composable
 fun SelectionBar(selection: ContactSelection, all: List<ContactSummary>, actions: ContactActions, topInset: Dp, modifier: Modifier = Modifier, backEnabled: Boolean = true) {
     if (!selection.active) return
     BackHandler(enabled = backEnabled) { selection.clear() }
     val p = LocalGlass.current
+    val flat = Stores.settings.state.collectAsStateWithLifecycle().value.uiStyle == 1
     val ids = selection.ids.toList()
     val some = ids.isNotEmpty()
-    val allStarred = all.filter { it.id in selection.ids }.all { it.starred }
-    Column(
-        modifier
-            .fillMaxWidth()
-            .background(p.base)
-            // Los toques no pasan a la lista de abajo.
-            .clickable(remember { MutableInteractionSource() }, null) {}
-            .padding(top = topInset + 4.dp, bottom = 6.dp, start = 8.dp, end = 8.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            BarAction(Icons.Rounded.Close, str(R.string.selection_exit), selection::clear, showLabel = false)
+    val removeStar = some && all.filter { it.id in selection.ids }.all { it.starred }
+
+    val items = rememberUpdatedState(
+        listOf(
+            BarItem(
+                if (removeStar) Icons.Rounded.StarOutline else Icons.Rounded.Star,
+                str(if (removeStar) R.string.bar_unfavorite else R.string.favorite),
+                str(if (removeStar) R.string.remove_favorite else R.string.add_favorite),
+                some,
+            ) {
+                actions.setStarred(ids, !removeStar)
+                selection.clear()
+            },
+            BarItem(Icons.AutoMirrored.Rounded.Label, str(R.string.bar_label), str(R.string.add_label), some) {
+                actions.addLabel(ids)
+                selection.clear()
+            },
+            BarItem(Icons.Rounded.Share, str(R.string.share), str(R.string.share), some) {
+                actions.share(ids)
+                selection.clear()
+            },
+            BarItem(Icons.AutoMirrored.Rounded.MergeType, str(R.string.merge), str(R.string.merge), ids.size >= 2) {
+                actions.nav.onMerge(ids)
+                selection.clear()
+            },
+            BarItem(Icons.Rounded.DeleteOutline, str(R.string.delete), str(R.string.delete), some) {
+                actions.delete(ids, null) { selection.clear() }
+            },
+        ),
+    )
+    val setBottom = LocalSelectionBottom.current
+    DisposableEffect(Unit) {
+        setBottom(SelectionBottom(items))
+        onDispose { setBottom(null) }
+    }
+
+    val row: @Composable (Modifier) -> Unit = { rowModifier ->
+        Row(
+            rowModifier
+                // Los toques no pasan a la lista de abajo.
+                .clickable(remember { MutableInteractionSource() }, null) {},
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            BarAction(Icons.Rounded.Close, null, str(R.string.selection_exit), selection::clear)
             Text(
                 plural(R.plurals.selected_count, ids.size, ids.size),
                 Modifier.weight(1f).padding(horizontal = 8.dp).semantics { heading() },
                 fontSize = 18.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = p.content,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
-            BarAction(Icons.Rounded.SelectAll, str(R.string.select_all), { selection.ids = all.mapTo(HashSet()) { it.id } }, enabled = ids.size < all.size)
-            BarAction(Icons.Rounded.Deselect, str(R.string.deselect_all), { selection.ids = emptySet() }, enabled = some)
+            BarAction(Icons.Rounded.SelectAll, str(R.string.select_all), str(R.string.select_all_full), { selection.ids = all.mapTo(HashSet()) { it.id } }, enabled = ids.size < all.size)
+            BarAction(Icons.Rounded.Deselect, str(R.string.deselect_all), str(R.string.deselect_all_full), { selection.ids = emptySet() }, enabled = some)
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            BarAction(
-                if (allStarred && some) Icons.Rounded.StarOutline else Icons.Rounded.Star,
-                str(if (allStarred && some) R.string.remove_favorite else R.string.add_favorite),
-                {
-                    actions.setStarred(ids, !allStarred)
-                    selection.clear()
-                },
-                enabled = some,
-                shortLabel = str(if (allStarred && some) R.string.bar_unfavorite else R.string.favorite),
-            )
-            BarAction(Icons.AutoMirrored.Rounded.Label, str(R.string.add_label), {
-                actions.addLabel(ids)
-                selection.clear()
-            }, enabled = some, shortLabel = str(R.string.bar_label))
-            BarAction(Icons.Rounded.Share, str(R.string.share), {
-                actions.share(ids)
-                selection.clear()
-            }, enabled = some)
-            BarAction(Icons.AutoMirrored.Rounded.MergeType, str(R.string.merge), {
-                actions.nav.onMerge(ids)
-                selection.clear()
-            }, enabled = ids.size >= 2)
-            BarAction(Icons.Rounded.DeleteOutline, str(R.string.delete), { actions.delete(ids, null) { selection.clear() } }, enabled = some)
+    }
+    if (flat) {
+        // Sólido: barra plana de borde a borde, como la de abajo.
+        row(
+            modifier
+                .fillMaxWidth()
+                .background(p.levels.firstOrNull() ?: p.base)
+                .drawBehind { drawLine(p.outline, Offset(0f, size.height), Offset(size.width, size.height), strokeWidth = 1.dp.toPx()) }
+                .padding(top = topInset + 4.dp, bottom = 4.dp, start = 8.dp, end = 8.dp),
+        )
+    } else {
+        GlassSurface(
+            modifier.padding(top = topInset + 8.dp, start = 16.dp, end = 16.dp).fillMaxWidth(),
+            shape = RoundedCornerShape(34.dp),
+            strong = true,
+            frost = 16.dp,
+        ) {
+            row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp))
+        }
+    }
+}
+
+/** La píldora de abajo durante la selección: las mismas medidas que la de pestañas, con las opciones. */
+@Composable
+fun SelectionActions(bottom: SelectionBottom, flat: Boolean, modifier: Modifier = Modifier) {
+    val p = LocalGlass.current
+    val row: @Composable (Modifier) -> Unit = { rowModifier ->
+        Row(rowModifier, verticalAlignment = Alignment.CenterVertically) {
+            bottom.items.value.forEach { BarAction(it.icon, it.label, it.description, it.onClick, Modifier.weight(1f), it.enabled) }
+        }
+    }
+    if (flat) {
+        Column(
+            modifier
+                .fillMaxWidth()
+                .background(p.levels.firstOrNull() ?: p.base)
+                .drawBehind { drawLine(p.outline, Offset(0f, 0f), Offset(size.width, 0f), strokeWidth = 1.dp.toPx()) }
+                .navigationBarsPadding(),
+        ) {
+            row(Modifier.fillMaxWidth().height(FlatNavBarHeight))
+        }
+    } else {
+        GlassSurface(
+            modifier.navigationBarsPadding().padding(horizontal = 16.dp, vertical = 12.dp).fillMaxWidth().height(70.dp),
+            shape = RoundedCornerShape(35.dp),
+            strong = true,
+            frost = 16.dp,
+        ) {
+            row(Modifier.fillMaxSize().padding(horizontal = 6.dp))
         }
     }
 }
 
 /** Botón plano con ícono y texto. Apagado se ve tenue y no responde. */
 @Composable
-private fun BarAction(icon: ImageVector, label: String, onClick: () -> Unit, enabled: Boolean = true, showLabel: Boolean = true, shortLabel: String = label) {
+private fun BarAction(icon: ImageVector, label: String?, description: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
     val p = LocalGlass.current
     val color = if (enabled) p.content else p.contentSecondary.copy(alpha = 0.45f)
     Column(
-        Modifier
-            .widthIn(min = 56.dp)
+        modifier
+            .widthIn(min = 52.dp)
             .heightIn(min = 48.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .clickable(enabled = enabled, role = Role.Button, onClickLabel = label, onClick = onClick)
-            .semantics(mergeDescendants = true) { contentDescription = label }
-            .padding(horizontal = 6.dp, vertical = 4.dp),
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(enabled = enabled, role = Role.Button, onClickLabel = description, onClick = onClick)
+            .semantics(mergeDescendants = true) { contentDescription = description }
+            .padding(horizontal = 4.dp, vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
         Icon(icon, null, Modifier.size(24.dp), tint = color)
-        if (showLabel) Text(shortLabel, fontSize = 11.sp, color = color, maxLines = 1, textAlign = TextAlign.Center, modifier = Modifier.widthIn(max = 72.dp), overflow = TextOverflow.Ellipsis)
+        if (label != null) Text(label, fontSize = 11.sp, color = color, maxLines = 1, textAlign = TextAlign.Center, overflow = TextOverflow.Ellipsis)
     }
 }

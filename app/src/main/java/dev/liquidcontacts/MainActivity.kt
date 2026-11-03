@@ -104,11 +104,14 @@ import dev.liquidcontacts.ui.screens.FirstSyncScreen
 import dev.liquidcontacts.ui.screens.ImportScreen
 import dev.liquidcontacts.ui.screens.LabelScreen
 import dev.liquidcontacts.ui.screens.LabelsTab
+import dev.liquidcontacts.ui.screens.LocalSelectionBottom
 import dev.liquidcontacts.ui.screens.LocalToast
 import dev.liquidcontacts.ui.screens.MergeScreen
 import dev.liquidcontacts.ui.screens.PermissionScreen
 import dev.liquidcontacts.ui.screens.PhotoWindow
 import dev.liquidcontacts.ui.screens.ServerScreen
+import dev.liquidcontacts.ui.screens.SelectionActions
+import dev.liquidcontacts.ui.screens.SelectionBottom
 import dev.liquidcontacts.ui.screens.SettingsScreen
 import dev.liquidcontacts.ui.screens.TabContext
 import dev.liquidcontacts.ui.screens.ToastHost
@@ -182,6 +185,7 @@ fun ContactsUi(
     var dialog by remember { mutableStateOf<DialogSpec?>(null) }
     var toast by remember { mutableStateOf<Pair<String, Long>?>(null) }
     var undo by remember { mutableStateOf<UndoSpec?>(null) }
+    var selectionBottom by remember { mutableStateOf<SelectionBottom?>(null) }
     val reduced = LocalReducedMotion.current
 
     fun push(o: Overlay) {
@@ -250,13 +254,14 @@ fun ContactsUi(
         LocalDialog provides { dialog = it },
         LocalToast provides { toast = it to System.nanoTime() },
         LocalUndo provides { undo = it },
+        LocalSelectionBottom provides { selectionBottom = it },
     ) {
         GlassRoot(
             animated = animated,
             floating = {
                 if (granted && !isExternal) {
                     AnimatedVisibility(
-                        stack.isEmpty(),
+                        stack.isEmpty() && selectionBottom == null,
                         modifier = Modifier.align(Alignment.BottomCenter),
                         enter = fadeIn() + if (reduced) fadeIn() else slideInVertically { it / 2 },
                         exit = fadeOut() + if (reduced) fadeOut() else slideOutVertically { it / 2 },
@@ -279,13 +284,24 @@ fun ContactsUi(
                         }
                     }
                     AnimatedVisibility(
-                        stack.isEmpty(),
+                        stack.isEmpty() && selectionBottom == null,
                         modifier = Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 24.dp, bottom = navBar + 18.dp),
                         enter = fadeIn(),
                         exit = fadeOut(),
                     ) {
                         GlassIconButton(Icons.Rounded.PersonAdd, str(R.string.new_contact), { push(Overlay.Edit(EditTarget.New)) }, size = 58.dp, prominent = true)
                     }
+                }
+                // Durante la selección múltiple, la píldora cambia a las opciones (también en una etiqueta).
+                var lastBottom by remember { mutableStateOf(selectionBottom) }
+                if (selectionBottom != null) lastBottom = selectionBottom
+                AnimatedVisibility(
+                    selectionBottom != null,
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                    enter = fadeIn() + if (reduced) fadeIn() else slideInVertically { it / 2 },
+                    exit = fadeOut() + if (reduced) fadeOut() else slideOutVertically { it / 2 },
+                ) {
+                    lastBottom?.let { SelectionActions(it, flatNav) }
                 }
                 ToastHost(toast) { toast = null }
                 UndoHost(undo) { undo = null }
@@ -313,7 +329,7 @@ fun ContactsUi(
                     .then(if (top != null) Modifier.clearAndSetSemantics { }.pointerInput(Unit) { swallowTouches() } else Modifier),
             ) {
                 if (!isExternal) {
-                    SwipeTabs(tab, onScreen = top == null, onTab = { tab = it }, onDrag = { tabDrag = it }) { t ->
+                    SwipeTabs(tab, onScreen = top == null, swipeEnabled = selectionBottom == null, onTab = { tab = it }, onDrag = { tabDrag = it }) { t ->
                         when (t) {
                             TAB_CONTACTS -> ContactsTab(tabContext)
                             TAB_FAVORITES -> FavoritesTab(tabContext)
@@ -389,6 +405,7 @@ private suspend fun PointerInputScope.swallowTouches() {
 private fun SwipeTabs(
     tab: Int,
     onScreen: Boolean,
+    swipeEnabled: Boolean,
     onTab: (Int) -> Unit,
     onDrag: (Float?) -> Unit,
     content: @Composable (Int) -> Unit,
@@ -413,7 +430,7 @@ private fun SwipeTabs(
         state = pager,
         flingBehavior = PagerDefaults.flingBehavior(pager, snapPositionalThreshold = 0.15f),
         beyondViewportPageCount = TAB_COUNT - 1,
-        userScrollEnabled = onScreen,
+        userScrollEnabled = onScreen && swipeEnabled,
         key = { it },
         modifier = Modifier.fillMaxSize(),
     ) { page ->

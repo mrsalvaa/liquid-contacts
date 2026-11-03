@@ -419,4 +419,6 @@
     <string name="save_in_no_server">Tap to set up your server so you can save here.</string>
     <string name="bar_unfavorite">Remove</string>
     <string name="bar_label">Label</string>
+    <string name="select_all_full">Select all</string>
+    <string name="deselect_all_full">Deselect all</string>
 </resources>

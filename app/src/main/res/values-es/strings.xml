@@ -437,4 +437,6 @@
     <string name="save_in_no_server">Tocá para configurar tu servidor y poder guardar acá.</string>
     <string name="bar_unfavorite">Quitar</string>
     <string name="bar_label">Etiqueta</string>
+    <string name="select_all_full">Seleccionar todos</string>
+    <string name="deselect_all_full">Deseleccionar todos</string>
 </resources>
