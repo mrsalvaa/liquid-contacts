@@ -27,8 +27,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import dev.liquidcontacts.data.Stores
 import dev.liquidcontacts.ui.glass.FlatNavBarHeight
 import dev.liquidcontacts.ui.glass.GlassSurface
 import androidx.compose.foundation.layout.Row
@@ -297,22 +295,27 @@ private val PILL_FROST = 4.dp
 /** Una opción de la barra de abajo en la selección múltiple. */
 class BarItem(val icon: ImageVector, val label: String, val description: String, val enabled: Boolean, val onClick: () -> Unit)
 
-/** Las opciones de la lista que está seleccionando; las pinta [SelectionActions] en lugar de la píldora. */
-class SelectionBottom(val items: State<List<BarItem>>)
+/** Lo de arriba de la selección múltiple: cuántos hay, seleccionar todos y salir. */
+class SelectionTopState(val count: Int, val canSelectAll: Boolean, val onSelectAll: () -> Unit, val onExit: () -> Unit)
+
+/**
+ * Lo que muestra la lista que está seleccionando. Lo pinta la capa flotante de la app
+ * ([SelectionTop] y [SelectionActions]): solo ahí el cristal ve la lista que pasa por debajo; dentro
+ * de la página refractaría únicamente el fondo y, con fondo liso, se vería como un color sólido.
+ */
+class SelectionBottom(val top: State<SelectionTopState>, val items: State<List<BarItem>>)
 
 val LocalSelectionBottom = staticCompositionLocalOf<(SelectionBottom?) -> Unit> { {} }
 
 /**
- * Selección múltiple, arriba: cuántos hay, Todos y Ninguno. Mientras está activa, la píldora de
- * abajo pasa a tener las opciones ([SelectionActions]) y el botón de contacto nuevo se va.
- * [all] son los contactos que se ven. El botón Atrás sale de la selección.
+ * Selección múltiple de una lista: publica sus barras para la capa flotante, donde la píldora de
+ * abajo cambia a las opciones y el botón de contacto nuevo se va. [all] son los contactos que se
+ * ven. El botón Atrás sale de la selección.
  */
 @Composable
-fun SelectionBar(selection: ContactSelection, all: List<ContactSummary>, actions: ContactActions, topInset: Dp, modifier: Modifier = Modifier, backEnabled: Boolean = true) {
+fun SelectionBar(selection: ContactSelection, all: List<ContactSummary>, actions: ContactActions, backEnabled: Boolean = true) {
     if (!selection.active) return
     BackHandler(enabled = backEnabled) { selection.clear() }
-    val p = LocalGlass.current
-    val flat = Stores.settings.state.collectAsStateWithLifecycle().value.uiStyle == 1
     val ids = selection.ids.toList()
     val some = ids.isNotEmpty()
     val removeStar = some && all.filter { it.id in selection.ids }.all { it.starred }
@@ -345,12 +348,21 @@ fun SelectionBar(selection: ContactSelection, all: List<ContactSummary>, actions
             },
         ),
     )
+    val top = rememberUpdatedState(
+        SelectionTopState(ids.size, ids.size < all.size, { selection.ids = all.mapTo(HashSet()) { it.id } }, selection::clear),
+    )
     val setBottom = LocalSelectionBottom.current
     DisposableEffect(Unit) {
-        setBottom(SelectionBottom(items))
+        setBottom(SelectionBottom(top, items))
         onDispose { setBottom(null) }
     }
+}
 
+/** La píldora de arriba durante la selección, con el mismo cristal que la de pestañas. */
+@Composable
+fun SelectionTop(bottom: SelectionBottom, flat: Boolean, topInset: Dp, modifier: Modifier = Modifier) {
+    val p = LocalGlass.current
+    val state = bottom.top.value
     val row: @Composable (Modifier) -> Unit = { rowModifier ->
         Row(
             rowModifier
@@ -358,9 +370,9 @@ fun SelectionBar(selection: ContactSelection, all: List<ContactSummary>, actions
                 .clickable(remember { MutableInteractionSource() }, null) {},
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            BarAction(Icons.Rounded.Close, null, str(R.string.selection_exit), selection::clear)
+            BarAction(Icons.Rounded.Close, null, str(R.string.selection_exit), state.onExit)
             Text(
-                plural(R.plurals.selected_count, ids.size, ids.size),
+                plural(R.plurals.selected_count, state.count, state.count),
                 Modifier.weight(1f).padding(horizontal = 8.dp).semantics { heading() },
                 fontSize = 18.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -368,7 +380,7 @@ fun SelectionBar(selection: ContactSelection, all: List<ContactSummary>, actions
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            BarAction(Icons.Rounded.SelectAll, str(R.string.select_all), str(R.string.select_all_full), { selection.ids = all.mapTo(HashSet()) { it.id } }, enabled = ids.size < all.size)
+            BarAction(Icons.Rounded.SelectAll, str(R.string.select_all), str(R.string.select_all_full), state.onSelectAll, enabled = state.canSelectAll)
         }
     }
     if (flat) {

@@ -112,6 +112,7 @@ import dev.liquidcontacts.ui.screens.PhotoWindow
 import dev.liquidcontacts.ui.screens.ServerScreen
 import dev.liquidcontacts.ui.screens.SelectionActions
 import dev.liquidcontacts.ui.screens.SelectionBottom
+import dev.liquidcontacts.ui.screens.SelectionTop
 import dev.liquidcontacts.ui.screens.SettingsScreen
 import dev.liquidcontacts.ui.screens.TabContext
 import dev.liquidcontacts.ui.screens.ToastHost
@@ -302,6 +303,14 @@ fun ContactsUi(
                     exit = fadeOut() + if (reduced) fadeOut() else slideOutVertically { it / 2 },
                 ) {
                     lastBottom?.let { SelectionActions(it, flatNav) }
+                }
+                AnimatedVisibility(
+                    selectionBottom != null,
+                    modifier = Modifier.align(Alignment.TopCenter),
+                    enter = fadeIn() + if (reduced) fadeIn() else slideInVertically { -it / 2 },
+                    exit = fadeOut() + if (reduced) fadeOut() else slideOutVertically { -it / 2 },
+                ) {
+                    lastBottom?.let { SelectionTop(it, flatNav, insets.calculateTopPadding()) }
                 }
                 ToastHost(toast) { toast = null }
                 UndoHost(undo) { undo = null }
