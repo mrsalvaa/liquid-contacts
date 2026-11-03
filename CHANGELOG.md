@@ -7,7 +7,7 @@
 ## Unreleased
 
 ### Changed
-- Multi-select: the top shows the count with All and None; at the bottom the pill changes to the options and the new contact button goes away. It follows the Liquid Glass or Solid style and stays on even with nothing selected.
+- Multi-select: the top shows the count with All; at the bottom the pill changes to the options and the new contact button goes away. It follows the Liquid Glass or Solid style and closes when nothing is left selected.
 - "Save in" is chosen in a window. The server is always listed: if no address book is on yet, the row takes you to turn one on.
 - Messaging app accounts such as WhatsApp or Signal are no longer offered for saving.
 - The photo is framed 1:1 before saving and opens in a window over the current screen.

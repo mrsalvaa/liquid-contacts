@@ -412,7 +412,6 @@
         <item quantity="one">Deleted in %d day</item>
         <item quantity="other">Deleted in %d days</item>
     </plurals>
-    <string name="deselect_all">None</string>
     <string name="photo_crop_title">Adjust the photo</string>
     <string name="photo_crop_hint">Move it and zoom with two fingers. The square is saved; the circle is how it looks in the list.</string>
     <string name="photo_crop_use">Use photo</string>
@@ -420,5 +419,4 @@
     <string name="bar_unfavorite">Remove</string>
     <string name="bar_label">Label</string>
     <string name="select_all_full">Select all</string>
-    <string name="deselect_all_full">Deselect all</string>
 </resources>

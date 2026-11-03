@@ -430,7 +430,6 @@
         <item quantity="one">Se elimina en %d día</item>
         <item quantity="other">Se elimina en %d días</item>
     </plurals>
-    <string name="deselect_all">Ninguno</string>
     <string name="photo_crop_title">Acomodar la foto</string>
     <string name="photo_crop_hint">Movela y agrandala con dos dedos. Se guarda el cuadrado; el círculo es como se ve en la lista.</string>
     <string name="photo_crop_use">Usar foto</string>
@@ -438,5 +437,4 @@
     <string name="bar_unfavorite">Quitar</string>
     <string name="bar_label">Etiqueta</string>
     <string name="select_all_full">Seleccionar todos</string>
-    <string name="deselect_all_full">Deseleccionar todos</string>
 </resources>

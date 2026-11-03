@@ -9,8 +9,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.rounded.Deselect
 import androidx.compose.material3.Icon
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -105,13 +105,13 @@ class ContactNav(
     val onMerge: (List<Long>) -> Unit,
 )
 
-/** Selección múltiple de una lista. Sigue activa aunque no quede ninguno, hasta salir con la X o Atrás. */
+/** Selección múltiple de una lista. Se sale con la X, con Atrás o al quedar sin ninguno. */
 class ContactSelection {
     var active by mutableStateOf(false)
     var ids by mutableStateOf<Set<Long>>(emptySet())
     fun toggle(id: Long) {
-        active = true
         ids = if (id in ids) ids - id else ids + id
+        active = ids.isNotEmpty()
     }
     fun clear() {
         active = false
@@ -291,6 +291,9 @@ fun SelectableContactRow(
     )
 }
 
+/** El mismo cristal que la píldora de pestañas (GlassNavBar), para que las tres se vean iguales. */
+private val PILL_FROST = 4.dp
+
 /** Una opción de la barra de abajo en la selección múltiple. */
 class BarItem(val icon: ImageVector, val label: String, val description: String, val enabled: Boolean, val onClick: () -> Unit)
 
@@ -366,7 +369,6 @@ fun SelectionBar(selection: ContactSelection, all: List<ContactSummary>, actions
                 overflow = TextOverflow.Ellipsis,
             )
             BarAction(Icons.Rounded.SelectAll, str(R.string.select_all), str(R.string.select_all_full), { selection.ids = all.mapTo(HashSet()) { it.id } }, enabled = ids.size < all.size)
-            BarAction(Icons.Rounded.Deselect, str(R.string.deselect_all), str(R.string.deselect_all_full), { selection.ids = emptySet() }, enabled = some)
         }
     }
     if (flat) {
@@ -381,11 +383,11 @@ fun SelectionBar(selection: ContactSelection, all: List<ContactSummary>, actions
     } else {
         GlassSurface(
             modifier.padding(top = topInset + 8.dp, start = 16.dp, end = 16.dp).fillMaxWidth(),
-            shape = RoundedCornerShape(34.dp),
+            shape = CircleShape,
             strong = true,
-            frost = 16.dp,
+            frost = PILL_FROST,
         ) {
-            row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp))
+            row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp))
         }
     }
 }
@@ -412,9 +414,9 @@ fun SelectionActions(bottom: SelectionBottom, flat: Boolean, modifier: Modifier 
     } else {
         GlassSurface(
             modifier.navigationBarsPadding().padding(horizontal = 16.dp, vertical = 12.dp).fillMaxWidth().height(70.dp),
-            shape = RoundedCornerShape(35.dp),
+            shape = CircleShape,
             strong = true,
-            frost = 16.dp,
+            frost = PILL_FROST,
         ) {
             row(Modifier.fillMaxSize().padding(horizontal = 6.dp))
         }
