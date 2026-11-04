@@ -4,7 +4,7 @@
 
 [English](CHANGELOG.md) | **Español**
 
-## Sin publicar
+## 1.1.3
 
 ### Cambios
 - El aviso de Deshacer se puede sacar deslizándolo hacia cualquier lado.
