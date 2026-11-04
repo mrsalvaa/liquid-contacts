@@ -4,7 +4,7 @@
 
 **English** | [Español](CHANGELOG.es.md)
 
-## Unreleased
+## 1.1.2
 
 ### Changes
 - Call opens the Liquid Phone keypad with the number typed in, if installed. Otherwise, whichever dialer there is.
