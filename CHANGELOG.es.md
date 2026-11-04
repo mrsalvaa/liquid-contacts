@@ -4,7 +4,7 @@
 
 [English](CHANGELOG.md) | **Español**
 
-## Sin publicar
+## 1.1.4
 
 ### Cambios
 - Íconos Samsung e iPhone nuevos. Se saca el ícono Motorola: quien lo tenía pasa a Liquid.

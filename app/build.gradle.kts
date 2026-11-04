@@ -26,8 +26,8 @@ android {
         applicationId = "dev.liquidcontacts"
         minSdk = 31
         targetSdk = 35
-        versionCode = 7
-        versionName = "1.1.3"
+        versionCode = 8
+        versionName = "1.1.4"
         resValue("string", "account_type", "dev.liquidcontacts.carddav")
     }
 
