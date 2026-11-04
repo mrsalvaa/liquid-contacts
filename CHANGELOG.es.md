@@ -4,6 +4,11 @@
 
 [English](CHANGELOG.md) | **Español**
 
+## Sin publicar
+
+### Cambios
+- Llamar abre el teclado de Liquid Phone con el número escrito, si está instalada. Si no, el marcador que haya.
+
 ## 1.1.1
 
 ### Cambios

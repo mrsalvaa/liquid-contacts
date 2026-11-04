@@ -67,7 +67,26 @@ import kotlinx.coroutines.withContext
 
 /** Llamar, escribir, mandar un email o abrir un mapa con la app que el usuario tenga elegida. */
 object Actions {
-    fun dial(context: Context, number: String) = start(context, Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", number, null)))
+    /**
+     * Abre el número en el teclado de Liquid Phone si está y si no, en el marcador que haya. Nunca
+     * marca solo. La build de prueba prefiere la build de prueba de Phone, para poder probarlas juntas.
+     */
+    fun dial(context: Context, number: String): Boolean {
+        val intent = Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", number, null))
+        val targets = if (context.packageName.endsWith(".debug")) listOf("$LIQUID_PHONE.debug", LIQUID_PHONE) else listOf(LIQUID_PHONE)
+        for (target in targets) {
+            try {
+                context.startActivity(Intent(intent).setPackage(target))
+                return true
+            } catch (e: ActivityNotFoundException) {
+                // No está instalada: se prueba con la siguiente.
+            }
+        }
+        return start(context, intent)
+    }
+
+    private const val LIQUID_PHONE = "dev.liquidphone"
+
     fun message(context: Context, number: String) = start(context, Intent(Intent.ACTION_SENDTO, Uri.fromParts("smsto", number, null)))
     fun email(context: Context, address: String) = start(context, Intent(Intent.ACTION_SENDTO, Uri.fromParts("mailto", address, null)))
     fun map(context: Context, address: String) = start(context, Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=" + Uri.encode(address))))
