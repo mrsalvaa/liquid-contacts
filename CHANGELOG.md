@@ -4,6 +4,11 @@
 
 **English** | [Español](CHANGELOG.es.md)
 
+## Unreleased
+
+### Changes
+- The Undo notice can be dismissed by sliding it in any direction.
+
 ## 1.1.2
 
 ### Changes

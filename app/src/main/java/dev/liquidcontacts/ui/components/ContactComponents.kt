@@ -1,6 +1,23 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package dev.liquidcontacts.ui.components
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.layout.offset
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
+import dev.liquidcontacts.util.str
+import dev.liquidcontacts.R
 import android.content.ContentResolver
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -477,14 +494,19 @@ val LocalUndo = staticCompositionLocalOf<(UndoSpec) -> Unit> { {} }
 /**
  * Píldora de cristal con "Deshacer" abajo de la pantalla. Dura [UNDO_MS] o lo que pida la
  * accesibilidad del sistema ("Tiempo para actuar"); cuando vence, la copia en memoria se suelta.
+ * Deslizarla hacia cualquier lado la saca antes de tiempo: lo hecho queda hecho.
  */
 @Composable
 fun BoxScope.UndoHost(spec: UndoSpec?, onDone: () -> Unit) {
     val context = LocalContext.current
     var last by remember { mutableStateOf(spec) }
     if (spec != null) last = spec
+    val scope = rememberCoroutineScope()
+    val done by rememberUpdatedState(onDone)
+    val drag = remember { Animatable(Offset.Zero, Offset.VectorConverter) }
     LaunchedEffect(spec) {
         if (spec != null) {
+            drag.snapTo(Offset.Zero)
             val manager = context.getSystemService(AccessibilityManager::class.java)
             delay(
                 manager.getRecommendedTimeoutMillis(
@@ -502,7 +524,46 @@ fun BoxScope.UndoHost(spec: UndoSpec?, onDone: () -> Unit) {
         exit = fadeOut(),
     ) {
         val p = LocalGlass.current
-        GlassSurface(Modifier.fillMaxWidth(), shape = CircleShape, strong = true, frost = 12.dp) {
+        val dismissAt = with(LocalDensity.current) { UNDO_DISMISS_AT.toPx() }
+        val dismissLabel = str(R.string.dismiss)
+        GlassSurface(
+            Modifier
+                .fillMaxWidth()
+                // El gesto va afuera del corrimiento: si no, la píldora al moverse cambiaría la lectura del dedo.
+                .pointerInput(dismissAt) {
+                    detectDragGestures(
+                        onDragEnd = {
+                            scope.launch {
+                                if (drag.value.getDistance() >= dismissAt) {
+                                    // Sigue en la misma dirección hasta irse.
+                                    drag.animateTo(drag.value * 3f, tween(140))
+                                    done()
+                                } else {
+                                    drag.animateTo(Offset.Zero, spring(dampingRatio = 0.7f, stiffness = Spring.StiffnessMedium))
+                                }
+                            }
+                        },
+                        onDragCancel = { scope.launch { drag.animateTo(Offset.Zero) } },
+                    ) { change, amount ->
+                        change.consume()
+                        scope.launch { drag.snapTo(drag.value + amount) }
+                    }
+                }
+                .offset { IntOffset(drag.value.x.roundToInt(), drag.value.y.roundToInt()) }
+                .graphicsLayer { alpha = (1f - drag.value.getDistance() / (dismissAt * 2.5f)).coerceIn(0f, 1f) }
+                // Con TalkBack no se puede deslizar.
+                .semantics {
+                    customActions = listOf(
+                        CustomAccessibilityAction(dismissLabel) {
+                            done()
+                            true
+                        },
+                    )
+                },
+            shape = CircleShape,
+            strong = true,
+            frost = 12.dp,
+        ) {
             Row(Modifier.padding(start = 20.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     last?.text.orEmpty(),
@@ -530,6 +591,9 @@ fun BoxScope.UndoHost(spec: UndoSpec?, onDone: () -> Unit) {
 }
 
 private const val UNDO_MS = 10_000
+
+/** Cuánto hay que deslizar la píldora, para cualquier lado, para que se vaya. */
+private val UNDO_DISMISS_AT = 64.dp
 
 // ---------------------------------------------------------------- interruptor con nombre
 
