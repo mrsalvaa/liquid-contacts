@@ -42,8 +42,7 @@ con los mismos nombres, valores y valores por defecto que Calendar: `themeMode`,
 de Contactos van aparte: `defaultCountry`, `defaultAreaCode`, `areaCodeNoticeDismissed`,
 `newContactAccount`.
 
-Íconos: los 5 estilos en el orden de siempre (Liquid por defecto, Material, Samsung, iPhone,
-Motorola) más monocromo. Los fondos son los de Calendar; el dibujo es una silueta de persona.
+Íconos: los 4 estilos en el orden de siempre (Liquid por defecto, Material, Samsung, iPhone) más monocromo. Los fondos son los de Calendar; el dibujo es una silueta de persona.
 
 ## Componentes propios
 

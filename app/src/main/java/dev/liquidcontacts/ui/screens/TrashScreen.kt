@@ -70,6 +70,13 @@ fun TrashScreen(padding: PaddingValues, onBack: () -> Unit) {
         item(key = "title") {
             BackTitle(str(R.string.trash), onBack, subtitle = state.entries.takeIf { it.isNotEmpty() }?.let { plural(R.plurals.contacts_count, it.size) })
         }
+        if (state.entries.isNotEmpty()) {
+            item(key = "empty-all") {
+                DangerButton(str(R.string.trash_empty_action), {
+                    confirm(str(R.string.trash_empty_title), str(R.string.trash_empty_action)) { Trash.purgeAll() }
+                }, Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 4.dp))
+            }
+        }
         item(key = "hint") {
             Text(str(R.string.trash_hint, Trash.DAYS), Modifier.padding(horizontal = 8.dp, vertical = 6.dp), fontSize = 13.sp, color = p.contentSecondary)
         }
@@ -95,14 +102,6 @@ fun TrashScreen(padding: PaddingValues, onBack: () -> Unit) {
                 },
                 subtitle = plural(R.plurals.trash_days_left, Trash.daysLeft(e), Trash.daysLeft(e)),
             )
-        }
-        if (state.entries.isNotEmpty()) {
-            item(key = "empty-all") {
-                Spacer(Modifier.height(16.dp))
-                DangerButton(str(R.string.trash_empty_action), {
-                    confirm(str(R.string.trash_empty_title), str(R.string.trash_empty_action)) { Trash.purgeAll() }
-                }, Modifier.fillMaxWidth())
-            }
         }
     }
 }

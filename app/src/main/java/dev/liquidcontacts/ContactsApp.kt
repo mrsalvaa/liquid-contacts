@@ -8,6 +8,7 @@ import dev.liquidcontacts.data.Stores
 import dev.liquidcontacts.data.VcfFiles
 import dev.liquidcontacts.sync.SyncEngine
 import dev.liquidcontacts.sync.SyncScheduler
+import dev.liquidcontacts.util.AppIcons
 import dev.liquidcontacts.util.Strings
 
 /**
@@ -21,6 +22,7 @@ class ContactsApp : Application(), Configuration.Provider {
         super.onCreate()
         Strings.app = this
         Stores.init(this)
+        if (AppIcons.migrate(this, Stores.settings.state.value.appIcon)) Stores.settings.update { it.copy(appIcon = 0) }
         Repo.init(this)
         SyncEngine.init(this)
         SyncScheduler.init(this)

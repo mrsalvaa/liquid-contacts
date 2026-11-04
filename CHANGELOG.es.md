@@ -4,6 +4,12 @@
 
 [English](CHANGELOG.md) | **Español**
 
+## Sin publicar
+
+### Cambios
+- Íconos Samsung e iPhone nuevos. Se saca el ícono Motorola: quien lo tenía pasa a Liquid.
+- Papelera: el botón de vaciarla va arriba de todo.
+
 ## 1.1.3
 
 ### Cambios

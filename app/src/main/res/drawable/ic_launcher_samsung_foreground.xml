@@ -6,11 +6,13 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path android:pathData="M54,24a30,30 0,1 1,0,60a30,30 0,1 1,0,-60z" android:fillColor="#FFF43F5E" />
-    <path android:pathData="M54,33a10,10 0,1 1,0,20a10,10 0,1 1,0,-20z" android:fillColor="#FFFFFFFF" />
-    <!-- Cuerpo entero: la elipse sigue de largo y el borde la tapa -->
-    <group>
-        <clip-path android:pathData="M54,27a27,27 0,1 1,0,54a27,27 0,1 1,0,-54z" />
-        <path android:pathData="M29,84a25,26 0,1 1,50,0a25,26 0,1 1,-50,0z" android:fillColor="#FFFFFFFF" />
+    <!-- Dentro de la zona segura: las máscaras redondas no le cortan las esquinas -->
+    <group android:pivotX="54" android:pivotY="54" android:scaleX="0.9" android:scaleY="0.9">
+    <!-- Libreta blanca con lomo de color, como la hoja del calendario -->
+    <path android:pathData="M37,27h34a8,8 0,0 1,8,8v38a8,8 0,0 1,-8,8h-34a8,8 0,0 1,-8,-8v-38a8,8 0,0 1,8,-8z"
+        android:fillColor="#FFFFFFFF" android:strokeColor="#FFD5D9E0" android:strokeWidth="1.5" />
+    <path android:pathData="M37,27h5v54h-5a8,8 0,0 1,-8,-8v-38a8,8 0,0 1,8,-8z" android:fillColor="#FFF43F5E" />
+    <path android:pathData="M60,39a8.5,8.5 0,1 1,0,17a8.5,8.5 0,1 1,0,-17z" android:fillColor="#FF3A3F4B" />
+    <path android:pathData="M46.5,73c0,-8.5 6,-13.5 13.5,-13.5s13.5,5 13.5,13.5z" android:fillColor="#FF3A3F4B" />
     </group>
 </vector>

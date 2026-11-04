@@ -4,6 +4,12 @@
 
 **English** | [Español](CHANGELOG.es.md)
 
+## Unreleased
+
+### Changes
+- New Samsung and iPhone icons. The Motorola icon is removed: anyone using it moves to Liquid.
+- Trash: the empty button is at the very top.
+
 ## 1.1.3
 
 ### Changes

@@ -245,8 +245,8 @@
             android:name=".IconMotorola"
             android:enabled="false"
             android:exported="true"
-            android:icon="@mipmap/ic_launcher_motorola"
-            android:roundIcon="@mipmap/ic_launcher_motorola"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher"
             android:targetActivity=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

@@ -15,8 +15,20 @@ object AppIcons {
         Icon("Material", "IconMaterial", R.drawable.ic_launcher_material_background, R.drawable.ic_launcher_material_foreground),
         Icon("Samsung", "IconSamsung", R.drawable.ic_launcher_samsung_background, R.drawable.ic_launcher_samsung_foreground),
         Icon("iPhone", "IconIphone", R.drawable.ic_launcher_iphone_background, R.drawable.ic_launcher_iphone_foreground),
-        Icon("Motorola", "IconMotorola", R.drawable.ic_launcher_motorola_background, R.drawable.ic_launcher_motorola_foreground),
     )
+
+    /**
+     * Íconos que ya no se ofrecen. El alias sigue en el manifest, apagado: si alguien lo tenía elegido
+     * y desapareciera con los demás apagados, la app se quedaría sin ícono y no se podría abrir.
+     */
+    private val retired = listOf("IconMotorola")
+
+    /** Quien tenía elegido un ícono que ya no está pasa al primero, antes de que se note. */
+    fun migrate(context: Context, chosen: Int): Boolean {
+        if (chosen in all.indices) return false
+        apply(context, 0)
+        return true
+    }
 
     /** Activa el alias elegido y desactiva el resto (primero activa, para no quedarse sin icono). */
     fun apply(context: Context, index: Int) {
@@ -29,5 +41,12 @@ object AppIcons {
         val chosen = all.getOrElse(index) { all[0] }
         set(chosen, true)
         all.filter { it != chosen }.forEach { set(it, false) }
+        retired.forEach { alias ->
+            pm.setComponentEnabledSetting(
+                ComponentName(context.packageName, "dev.liquidcontacts.$alias"),
+                PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                PackageManager.DONT_KILL_APP,
+            )
+        }
     }
 }
