@@ -8,6 +8,7 @@
 
 ### Changes
 - Call opens the Liquid Phone keypad with the number typed in, if installed. Otherwise, whichever dialer there is.
+- Faster tab change when tapping the bar.
 
 ## 1.1.1
 

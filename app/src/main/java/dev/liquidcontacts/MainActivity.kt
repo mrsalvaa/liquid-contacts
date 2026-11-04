@@ -10,6 +10,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -423,16 +424,24 @@ private fun SwipeTabs(
     val select by rememberUpdatedState(onTab)
     val drag by rememberUpdatedState(onDrag)
     val reduced = LocalReducedMotion.current
+    // La pestaña pedida con un toque, mientras el pager va hacia ella. La burbuja no lo espera: sale
+    // enseguida por su cuenta, y un toque nuevo no vuelve atrás por una pestaña que quedó en el camino.
+    var requested by remember { mutableStateOf<Int?>(null) }
     LaunchedEffect(pager) {
-        snapshotFlow { pager.settledPage }.collect { select(it) }
+        snapshotFlow { pager.settledPage }.collect { if (requested == null || requested == it) select(it) }
     }
     LaunchedEffect(pager) {
-        snapshotFlow { if (pager.isScrollInProgress) pager.currentPage + pager.currentPageOffsetFraction else null }
+        snapshotFlow { if (pager.isScrollInProgress && requested == null) pager.currentPage + pager.currentPageOffsetFraction else null }
             .collect { drag(it) }
     }
     LaunchedEffect(tab) {
         if (pager.targetPage != tab) {
-            if (reduced) pager.scrollToPage(tab) else pager.animateScrollToPage(tab)
+            requested = tab
+            try {
+                if (reduced) pager.scrollToPage(tab) else pager.animateScrollToPage(tab, animationSpec = tween(220, easing = FastOutSlowInEasing))
+            } finally {
+                if (requested == tab) requested = null
+            }
         }
     }
     HorizontalPager(

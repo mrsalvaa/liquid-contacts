@@ -8,6 +8,7 @@
 
 ### Cambios
 - Llamar abre el teclado de Liquid Phone con el número escrito, si está instalada. Si no, el marcador que haya.
+- Cambio de pestaña más rápido al tocar la barra.
 
 ## 1.1.1
 
