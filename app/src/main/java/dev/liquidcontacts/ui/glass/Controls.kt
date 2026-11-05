@@ -459,67 +459,29 @@ fun BoxScope.ActionSheetHost(spec: SheetSpec?, onDismiss: () -> Unit) {
     val p = LocalGlass.current
     var last by remember { mutableStateOf(spec) }
     if (spec != null && spec !== last) last = spec
-    BackHandler(enabled = spec != null, onBack = onDismiss)
-
-    AnimatedVisibility(spec != null, enter = fadeIn(), exit = fadeOut()) {
-        Box(
-            Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.45f))
-                .clickable(remember { MutableInteractionSource() }, null, onClick = onDismiss),
-        )
-    }
-    AnimatedVisibility(
-        spec != null,
-        modifier = Modifier.align(Alignment.BottomCenter),
-        enter = if (LocalReducedMotion.current) fadeIn() else slideInVertically(spring(dampingRatio = 0.8f, stiffness = 500f)) { it } + fadeIn(),
-        exit = if (LocalReducedMotion.current) fadeOut() else slideOutVertically { it } + fadeOut(),
-    ) {
-        val s = last ?: return@AnimatedVisibility
-        GlassSurface(
-            Modifier
-                .navigationBarsPadding()
-                .padding(12.dp)
-                .fillMaxWidth(),
-            shape = RoundedCornerShape(34.dp),
-            strong = true,
-            frost = 16.dp,
-        ) {
-            Column(Modifier.padding(vertical = 14.dp)) {
-                Text(
-                    s.title,
-                    Modifier.padding(horizontal = 24.dp),
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                if (s.subtitle != null) {
-                    Text(
-                        s.subtitle,
-                        Modifier.padding(horizontal = 24.dp),
-                        fontSize = 13.sp,
-                        color = p.contentSecondary,
-                    )
-                }
-                Box(Modifier.height(8.dp))
-                s.actions.forEach { action ->
-                    val color = if (action.danger) p.danger else p.content
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                onDismiss()
-                                action.onClick()
-                            }
-                            .padding(horizontal = 24.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(styled(action.icon), null, Modifier.size(22.dp), tint = color)
-                        Box(Modifier.width(16.dp))
-                        Text(action.label, fontSize = 16.sp, color = color)
+    GlassWindow(spec != null, onDismiss) {
+        val s = last ?: return@GlassWindow
+        WindowTitle(s.title, s.subtitle)
+        s.actions.forEach { action ->
+            val color = if (action.danger) p.danger else p.content
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .clickable {
+                        onDismiss()
+                        action.onClick()
                     }
-                }
+                    .padding(vertical = 13.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(styled(action.icon), null, Modifier.size(22.dp), tint = color)
+                Box(Modifier.width(16.dp))
+                Text(action.label, fontSize = 16.sp, color = color)
             }
         }
+        Box(Modifier.height(16.dp))
+        GlassButton(str(R.string.cancel), onDismiss, Modifier.fillMaxWidth())
     }
 }
 
@@ -536,26 +498,10 @@ val LocalPrompt = staticCompositionLocalOf<(PromptSpec) -> Unit> { {} }
 
 @Composable
 fun BoxScope.PromptHost(spec: PromptSpec?, onDismiss: () -> Unit) {
-    val p = LocalGlass.current
     var last by remember { mutableStateOf(spec) }
     if (spec != null && spec !== last) last = spec
-    BackHandler(enabled = spec != null, onBack = onDismiss)
-
-    AnimatedVisibility(spec != null, enter = fadeIn(), exit = fadeOut()) {
-        Box(
-            Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.5f))
-                .clickable(remember { MutableInteractionSource() }, null, onClick = onDismiss),
-        )
-    }
-    AnimatedVisibility(
-        spec != null,
-        modifier = Modifier.align(Alignment.Center).imePadding().padding(20.dp),
-        enter = fadeIn() + if (LocalReducedMotion.current) EnterTransition.None else scaleIn(initialScale = 0.9f),
-        exit = fadeOut() + if (LocalReducedMotion.current) ExitTransition.None else scaleOut(targetScale = 0.9f),
-    ) {
-        val s = last ?: return@AnimatedVisibility
+    GlassWindow(spec != null, onDismiss) {
+        val s = last ?: return@GlassWindow
         // Cada apertura es un PromptSpec nuevo: el texto empieza vacío.
         var text by remember(s) { mutableStateOf("") }
         val focus = remember { FocusRequester() }
@@ -564,39 +510,21 @@ fun BoxScope.PromptHost(spec: PromptSpec?, onDismiss: () -> Unit) {
             s.onConfirm(text.trim())
         }
         LaunchedEffect(s) { focus.requestFocus() }
-        GlassSurface(
-            Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(34.dp),
-            strong = true,
-            frost = 16.dp,
-        ) {
-            Column(Modifier.padding(24.dp)) {
-                Text(s.title, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
-                if (s.subtitle != null) {
-                    Text(s.subtitle, fontSize = 14.sp, color = p.contentSecondary)
-                }
-                Box(Modifier.height(16.dp))
-                GlassTextField(
-                    text,
-                    { text = it },
-                    s.placeholder,
-                    focusRequester = focus,
-                    keyboardActions = KeyboardActions(onDone = { confirm() }),
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.Sentences,
-                        imeAction = ImeAction.Done,
-                    ),
-                )
-                Row(Modifier.padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    GlassButton(str(R.string.cancel), onDismiss, Modifier.weight(1f))
-                    GlassButton(
-                        s.confirmLabel,
-                        confirm,
-                        Modifier.weight(1f),
-                        prominent = true,
-                    )
-                }
-            }
-        }
+        WindowTitle(s.title, s.subtitle)
+        GlassTextField(
+            text,
+            { text = it },
+            s.placeholder,
+            focusRequester = focus,
+            keyboardActions = KeyboardActions(onDone = { confirm() }),
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.Sentences,
+                imeAction = ImeAction.Done,
+            ),
+        )
+        Box(Modifier.height(16.dp))
+        GlassButton(s.confirmLabel, confirm, Modifier.fillMaxWidth(), prominent = true)
+        Box(Modifier.height(8.dp))
+        GlassButton(str(R.string.cancel), onDismiss, Modifier.fillMaxWidth())
     }
 }

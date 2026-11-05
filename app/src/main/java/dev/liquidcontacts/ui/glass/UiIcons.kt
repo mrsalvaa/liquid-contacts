@@ -16,6 +16,7 @@ import androidx.compose.material.icons.outlined.CalendarViewWeek
 import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Event
 import androidx.compose.material.icons.outlined.EventRepeat
@@ -37,6 +38,7 @@ import androidx.compose.material.icons.rounded.CalendarViewWeek
 import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.DeleteOutline
+import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Event
 import androidx.compose.material.icons.rounded.EventRepeat
@@ -60,6 +62,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 private val SOLID_ICONS: Map<ImageVector, ImageVector> by lazy {
     mapOf(
         Icons.Rounded.DeleteOutline to Icons.Outlined.DeleteOutline,
+        Icons.Rounded.ExpandMore to Icons.Outlined.ExpandMore,
         Icons.Rounded.FileDownload to Icons.Outlined.FileDownload,
         Icons.Rounded.Add to Icons.Outlined.Add,
         Icons.Rounded.Remove to Icons.Outlined.Remove,

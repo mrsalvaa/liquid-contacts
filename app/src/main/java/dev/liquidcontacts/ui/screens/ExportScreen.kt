@@ -4,9 +4,7 @@ package dev.liquidcontacts.ui.screens
 import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,13 +15,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -36,11 +34,11 @@ import dev.liquidcontacts.core.vcard.VCardFormat
 import dev.liquidcontacts.data.Repo
 import dev.liquidcontacts.data.VcfFiles
 import dev.liquidcontacts.ui.components.ContactRow
+import dev.liquidcontacts.ui.components.Dropdown
 import dev.liquidcontacts.ui.components.SearchField
 import dev.liquidcontacts.ui.components.SwitchRow
 import dev.liquidcontacts.ui.glass.GlassButton
 import dev.liquidcontacts.ui.glass.GlassCard
-import dev.liquidcontacts.ui.glass.GlassChip
 import dev.liquidcontacts.ui.glass.GlassSwitch
 import dev.liquidcontacts.ui.glass.LocalGlass
 import dev.liquidcontacts.ui.glass.SectionLabel
@@ -116,28 +114,34 @@ fun ExportScreen(padding: PaddingValues, onBack: () -> Unit) {
         item(key = "options") {
             Column {
                 GlassCard {
-                    Text(str(R.string.export_which), fontSize = 16.sp)
-                    ChipRow(ExportScope.entries, what, {
-                        str(
-                            when (it) {
-                                ExportScope.ALL -> R.string.export_all
-                                ExportScope.LABEL -> R.string.export_label
-                                ExportScope.SELECTED -> R.string.export_selected
-                            },
-                        )
-                    }) { what = it }
+                    Dropdown(
+                        str(R.string.export_which),
+                        ExportScope.entries,
+                        what,
+                        {
+                            str(
+                                when (it) {
+                                    ExportScope.ALL -> R.string.export_all
+                                    ExportScope.LABEL -> R.string.export_label
+                                    ExportScope.SELECTED -> R.string.export_selected
+                                },
+                            )
+                        },
+                    ) { what = it }
                     if (what == ExportScope.LABEL) {
                         if (groups.isEmpty()) {
-                            Text(str(R.string.no_labels), fontSize = 14.sp, color = p.contentSecondary)
+                            Text(str(R.string.no_labels), Modifier.padding(vertical = 6.dp), fontSize = 14.sp, color = p.contentSecondary)
                         } else {
-                            FlowRow(Modifier.padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                groups.forEach { g -> GlassChip(g.title, g == group, { group = g }) }
-                            }
+                            Dropdown(str(R.string.export_label_title), groups, group, { it.title }, placeholder = str(R.string.export_label_choose)) { group = it }
                         }
                     }
+                    Dropdown(
+                        str(R.string.export_format),
+                        VCardFormat.entries,
+                        format,
+                        { str(if (it == VCardFormat.V3) R.string.export_v3 else R.string.export_v4) },
+                    ) { format = it }
                     SwitchRow(str(R.string.export_photos), photos, { photos = it })
-                    Text(str(R.string.export_format), Modifier.padding(top = 6.dp), fontSize = 16.sp)
-                    ChipRow(VCardFormat.entries, format, { str(if (it == VCardFormat.V3) R.string.export_v3 else R.string.export_v4) }) { format = it }
                     Text(str(R.string.export_warning), Modifier.padding(top = 6.dp), fontSize = 13.sp, color = p.contentSecondary)
                 }
                 Spacer(Modifier.height(12.dp))

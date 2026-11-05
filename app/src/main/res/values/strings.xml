@@ -419,4 +419,6 @@
     <string name="bar_unfavorite">Remove</string>
     <string name="bar_label">Label</string>
     <string name="select_all_full">Select all</string>
+    <string name="export_label_title">Label</string>
+    <string name="export_label_choose">Choose a label</string>
 </resources>

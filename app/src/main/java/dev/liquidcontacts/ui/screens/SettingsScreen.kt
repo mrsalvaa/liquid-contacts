@@ -4,11 +4,9 @@ package dev.liquidcontacts.ui.screens
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,13 +21,13 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
@@ -47,11 +45,11 @@ import dev.liquidcontacts.data.Trash
 import dev.liquidcontacts.data.VcfFiles
 import dev.liquidcontacts.data.Stores
 import dev.liquidcontacts.sync.SyncEngine
+import dev.liquidcontacts.ui.components.AccountDropdown
 import dev.liquidcontacts.ui.components.DangerButton
 import dev.liquidcontacts.ui.glass.DialogSpec
 import dev.liquidcontacts.ui.glass.GlassButton
 import dev.liquidcontacts.ui.glass.GlassCard
-import dev.liquidcontacts.ui.glass.GlassChip
 import dev.liquidcontacts.ui.glass.GlassTextField
 import dev.liquidcontacts.ui.glass.LocalDialog
 import dev.liquidcontacts.ui.glass.LocalGlass
@@ -143,7 +141,7 @@ fun SettingsScreen(padding: PaddingValues, onBack: () -> Unit, toAreaCode: Boole
                 str(R.string.default_country),
                 subtitle = countryName(s.defaultCountry) + " (+" + PhoneNumbers.callingCode(s.defaultCountry.ifEmpty { "AR" }) + ")",
                 onClick = {
-                    dialog(DialogSpec(str(R.string.default_country)) { dismiss -> CountryPicker { c -> edit { it.copy(defaultCountry = c) }; dismiss() } })
+                    dialog(DialogSpec(str(R.string.default_country)) { dismiss -> CountryPicker(dismiss) { c -> edit { it.copy(defaultCountry = c) }; dismiss() } })
                 },
             )
             Text(str(R.string.default_country_hint), fontSize = 12.sp, color = p.contentSecondary)
@@ -177,13 +175,14 @@ fun SettingsScreen(padding: PaddingValues, onBack: () -> Unit, toAreaCode: Boole
 
         SectionLabel(str(R.string.new_contacts))
         GlassCard {
+            AccountDropdown(
+                str(R.string.save_in),
+                accounts,
+                accounts.firstOrNull { it.id == s.newContactAccount } ?: local,
+                local,
+                onServer = onServer,
+            ) { a -> edit { it.copy(newContactAccount = if (a == local) "" else a.id) } }
             Text(str(R.string.new_contacts_hint), fontSize = 13.sp, color = p.contentSecondary)
-            FlowRow(Modifier.padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                accounts.forEach { a ->
-                    val selected = if (s.newContactAccount.isEmpty()) a == local else a.id == s.newContactAccount
-                    GlassChip(Labels.account(a, local), selected, { edit { it.copy(newContactAccount = if (a == local) "" else a.id) } })
-                }
-            }
         }
 
         SectionLabel(str(R.string.tools))
@@ -226,7 +225,7 @@ private fun countryName(code: String): String =
 
 /** Lista de países con búsqueda (sin tildes), con su código de llamada. */
 @Composable
-private fun CountryPicker(onPick: (String) -> Unit) {
+private fun CountryPicker(onCancel: () -> Unit, onPick: (String) -> Unit) {
     var query by remember { mutableStateOf("") }
     val all = remember {
         PhoneNumbers.regions().map { it to countryName(it) }.sortedWith { a, b -> dev.liquidcontacts.core.text.SpanishOrder().compare(a.second, b.second) }
@@ -241,4 +240,6 @@ private fun CountryPicker(onPick: (String) -> Unit) {
             SettingRow(name, subtitle = "+" + PhoneNumbers.callingCode(code), onClick = { onPick(code) })
         }
     }
+    Spacer(Modifier.height(16.dp))
+    GlassButton(str(R.string.cancel), onCancel, Modifier.fillMaxWidth())
 }

@@ -4,6 +4,12 @@
 
 [English](CHANGELOG.md) | **Español**
 
+## Sin publicar
+
+### Cambios
+- Todas las ventanas emergentes se ven igual: los menús al mantener y los pedidos de texto usan la misma tarjeta de cristal centrada que los diálogos, con los botones apilados y un botón Cancelar.
+- Desplegables que abren una ventana emergente: la cuenta por defecto en Ajustes, dónde guardar al importar un .vcf (también si se abre desde otra app) y qué contactos, etiqueta y formato al exportar.
+
 ## 1.1.4
 
 ### Cambios

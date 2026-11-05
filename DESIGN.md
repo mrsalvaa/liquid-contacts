@@ -69,6 +69,10 @@ No hicieron falta los modos livianos de Calc.
 La burbuja del índice queda siempre armada y solo cambia su opacidad: crear una superficie de
 cristal en cada toque daba 10 % de tirones y picos de 36 ms.
 
+## Excepción local: una sola ventana emergente
+
+`ui/glass/Dialog.kt` suma `GlassWindow` y `WindowTitle`, y `ActionSheetHost` y `PromptHost` los usan: los tres hosts comparten velo, tarjeta centrada, animación y desplazamiento. Es la primera diferencia de `ui/glass` con Calendar y Phone, que siguen con el menú abajo; `UiIcons` suma `ExpandMore`. Para elegir una opción se usa `ui/components/Dropdown.kt`: flecha hacia abajo, ventana con la opción marcada y Cancelar al final.
+
 ## Excepción local: el rojo de las acciones destructivas
 
 `GlassButton(danger = true)` de `ui/glass` usa `danger` translúcido con texto blanco, con poco

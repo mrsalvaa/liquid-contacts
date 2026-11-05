@@ -167,26 +167,25 @@ fun PhotoCropper(source: Bitmap, maxSide: Int, onDone: (ByteArray?) -> Unit, onC
         clipPath(circle, ClipOp.Difference) { drawRect(Color.Black.copy(alpha = 0.45f)) }
     }
     Spacer(Modifier.height(16.dp))
-    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        GlassButton(str(R.string.cancel), onCancel, Modifier.weight(1f))
-        GlassButton(
-            str(R.string.photo_crop_use),
-            {
-                saving = true
-                val view = side.toFloat()
-                val k = scaleFor(side)
-                val cropSide = view / k
-                val left = source.width / 2f - offset.x / k - cropSide / 2
-                val top = source.height / 2f - offset.y / k - cropSide / 2
-                scope.launch {
-                    onDone(withContext(Dispatchers.Default) { runCatching { cropToJpeg(source, left, top, cropSide, maxSide) }.getOrNull() })
-                }
-            },
-            Modifier.weight(1f),
-            prominent = true,
-            enabled = !saving && side > 0,
-        )
-    }
+    GlassButton(
+        str(R.string.photo_crop_use),
+        {
+            saving = true
+            val view = side.toFloat()
+            val k = scaleFor(side)
+            val cropSide = view / k
+            val left = source.width / 2f - offset.x / k - cropSide / 2
+            val top = source.height / 2f - offset.y / k - cropSide / 2
+            scope.launch {
+                onDone(withContext(Dispatchers.Default) { runCatching { cropToJpeg(source, left, top, cropSide, maxSide) }.getOrNull() })
+            }
+        },
+        Modifier.fillMaxWidth(),
+        prominent = true,
+        enabled = !saving && side > 0,
+    )
+    Spacer(Modifier.height(8.dp))
+    GlassButton(str(R.string.cancel), onCancel, Modifier.fillMaxWidth())
 }
 
 /** La foto tal como viene, sin pasarse de lo que hace falta para recortarla bien. */

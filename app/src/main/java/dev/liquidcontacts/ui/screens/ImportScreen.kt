@@ -3,9 +3,7 @@ package dev.liquidcontacts.ui.screens
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,14 +18,14 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Merge
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -53,6 +51,7 @@ import dev.liquidcontacts.core.vcard.VCardImport
 import dev.liquidcontacts.data.Repo
 import dev.liquidcontacts.data.Stores
 import dev.liquidcontacts.data.VcfFiles
+import dev.liquidcontacts.ui.components.AccountDropdown
 import dev.liquidcontacts.ui.components.ContactRow
 import dev.liquidcontacts.ui.components.LocalUndo
 import dev.liquidcontacts.ui.components.SwitchRow
@@ -227,12 +226,12 @@ fun ImportScreen(data: VCardImport.Ok, padding: PaddingValues, onBack: () -> Uni
                 }
             }
         }
-        if (accounts.size > 1) {
+        if (account != null) {
             item(key = "account") {
                 Column {
                     SectionLabel(str(R.string.save_in))
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        accounts.forEach { a -> GlassChip(Labels.account(a, local), a == account, { account = a }) }
+                    GlassCard {
+                        AccountDropdown(null, accounts, account, local) { account = it }
                     }
                 }
             }

@@ -437,4 +437,6 @@
     <string name="bar_unfavorite">Quitar</string>
     <string name="bar_label">Etiqueta</string>
     <string name="select_all_full">Seleccionar todos</string>
+    <string name="export_label_title">Etiqueta</string>
+    <string name="export_label_choose">Elegí una etiqueta</string>
 </resources>

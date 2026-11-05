@@ -4,6 +4,12 @@
 
 **English** | [Español](CHANGELOG.es.md)
 
+## Unreleased
+
+### Changed
+- All pop-up windows now look the same: the long-press menus and the text prompts use the same centered glass card as the dialogs, with the buttons stacked and a Cancel button.
+- Dropdowns that open a pop-up window: default account in Settings, where to save when importing a .vcf (also when opened from another app), and which contacts, label and format when exporting.
+
 ## 1.1.4
 
 ### Changes

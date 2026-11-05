@@ -29,24 +29,15 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
-import dev.liquidcontacts.sync.SyncEngine
-import dev.liquidcontacts.core.text.SpanishOrder
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.material3.Icon
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
@@ -69,6 +60,7 @@ import dev.liquidcontacts.core.model.Phone
 import dev.liquidcontacts.core.model.PostalAddress
 import dev.liquidcontacts.data.Repo
 import dev.liquidcontacts.data.Stores
+import dev.liquidcontacts.ui.components.AccountDropdown
 import dev.liquidcontacts.ui.components.DangerButton
 import dev.liquidcontacts.ui.components.ContactAvatar
 import dev.liquidcontacts.ui.components.SwitchRow
@@ -92,7 +84,6 @@ import dev.liquidcontacts.util.str
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.ByteArrayOutputStream
 import java.time.LocalDate
 import java.time.YearMonth
 
@@ -289,8 +280,6 @@ fun ContactEditScreen(target: EditTarget, padding: PaddingValues, onBack: () -> 
             Text(str(R.string.fichas_hint), Modifier.padding(horizontal = 8.dp, vertical = 6.dp), fontSize = 13.sp, color = p.contentSecondary)
         } else if (original == null && account != null) {
             SectionLabel(str(R.string.save_in))
-            val order = remember { SpanishOrder() }
-            val options = accounts.map { it to Labels.account(it, local) }.sortedWith { x, y -> order.compare(x.second, y.second) }
             val toServer = {
                 if (dirty) {
                     dialog(
@@ -310,20 +299,7 @@ fun ContactEditScreen(target: EditTarget, padding: PaddingValues, onBack: () -> 
                 }
             }
             GlassCard {
-                SettingRow(
-                    options.firstOrNull { it.first == account }?.second.orEmpty(),
-                    onClick = {
-                        dialog(
-                            DialogSpec(str(R.string.save_in)) { dismiss ->
-                                AccountChooser(options, account, { account = it; dismiss() }) {
-                                    dismiss()
-                                    toServer()
-                                }
-                            },
-                        )
-                    },
-                    trailing = { Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = p.contentSecondary) },
-                )
+                AccountDropdown(null, accounts, account, local, onServer = toServer) { account = it }
             }
         } else if (account != null) {
             Text(
@@ -580,6 +556,8 @@ private fun rememberDatePicker(): (ContactEvent, (ContactEvent) -> Unit) -> Unit
                     dismiss()
                     done(ContactEvent(month + 1, minOf(day + 1, last), y, start.kind, start.label))
                 }, Modifier.fillMaxWidth(), prominent = true)
+                Spacer(Modifier.height(8.dp))
+                GlassButton(str(R.string.cancel), dismiss, Modifier.fillMaxWidth())
             },
         )
     }
@@ -625,32 +603,3 @@ private fun Contact.plusExtra(e: Contact): Contact = copy(
 
 private fun <T> List<T>.replaceAt(i: Int, v: T): List<T> = toMutableList().also { it[i] = v }
 private fun <T> List<T>.removeAt(i: Int): List<T> = toMutableList().also { it.removeAt(i) }
-
-/**
- * Elegir dónde guardar, en una ventana. El servidor figura siempre: si todavía no hay una libreta
- * donde guardar, la fila lleva a activarla.
- */
-@Composable
-private fun AccountChooser(options: List<Pair<ContactAccount, String>>, selected: ContactAccount?, onPick: (ContactAccount) -> Unit, onServer: () -> Unit) {
-    val p = LocalGlass.current
-    val server by SyncEngine.store.state.collectAsStateWithLifecycle()
-    LazyColumn(Modifier.fillMaxWidth().heightIn(max = 420.dp)) {
-        items(options) { (a, label) ->
-            SettingRow(
-                label,
-                onClick = { onPick(a) },
-                trailing = if (a == selected) ({ Icon(Icons.Rounded.Check, null, tint = p.accentFg) }) else null,
-            )
-        }
-        if (server.books.none { it.firstSyncDone && !it.readOnly }) {
-            item {
-                SettingRow(
-                    server.nickname.ifEmpty { str(R.string.server_title) },
-                    subtitle = str(if (server.configured) R.string.save_in_no_book else R.string.save_in_no_server),
-                    onClick = onServer,
-                    trailing = { Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = p.contentSecondary) },
-                )
-            }
-        }
-    }
-}
