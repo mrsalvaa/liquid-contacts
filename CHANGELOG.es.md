@@ -4,7 +4,7 @@
 
 [English](CHANGELOG.md) | **Español**
 
-## Sin publicar
+## 1.2.0
 
 ### Cambios
 - Todas las ventanas emergentes se ven igual: los menús al mantener y los pedidos de texto usan la misma tarjeta de cristal centrada que los diálogos, con los botones apilados y un botón Cancelar.

@@ -4,7 +4,7 @@
 
 **English** | [Español](CHANGELOG.es.md)
 
-## Unreleased
+## 1.2.0
 
 ### Changed
 - All pop-up windows now look the same: the long-press menus and the text prompts use the same centered glass card as the dialogs, with the buttons stacked and a Cancel button.
