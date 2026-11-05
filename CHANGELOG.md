@@ -4,7 +4,7 @@
 
 **English** | [Español](CHANGELOG.es.md)
 
-## Unreleased
+## 1.2.1
 
 ### Changed
 - When importing a .vcf and in the trash, each contact shows its photo if it has one.

@@ -4,7 +4,7 @@
 
 [English](CHANGELOG.md) | **Español**
 
-## Sin publicar
+## 1.2.1
 
 ### Cambios
 - Al importar un .vcf y en la papelera, cada contacto muestra su foto si tiene una.
