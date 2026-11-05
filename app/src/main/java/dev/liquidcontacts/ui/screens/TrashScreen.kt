@@ -101,6 +101,7 @@ fun TrashScreen(padding: PaddingValues, onBack: () -> Unit) {
                     )
                 },
                 subtitle = plural(R.plurals.trash_days_left, Trash.daysLeft(e), Trash.daysLeft(e)),
+                photoUri = Trash.photoUri(e),
             )
         }
     }

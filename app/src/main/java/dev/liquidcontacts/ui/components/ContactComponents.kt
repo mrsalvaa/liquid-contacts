@@ -148,6 +148,25 @@ private object Thumbnails {
             }.getOrNull()?.let { bmp: Bitmap -> bmp.asImageBitmap().also { cache.put(key, it) } }
         }
     }
+
+    /**
+     * La clave de una foto en bytes: el mismo arreglo, sin retenerlo en el caché ni recorrerlo
+     * entero (una foto de un .vcf puede pesar 1 MB y la fila se vuelve a pintar al desplazar).
+     */
+    fun keyOf(photo: ByteArray, sidePx: Int): String = "bytes:${System.identityHashCode(photo)}:${photo.size}#$sidePx"
+
+    suspend fun load(photo: ByteArray, sidePx: Int): ImageBitmap? {
+        val key = keyOf(photo, sidePx)
+        cache.get(key)?.let { return it }
+        return withContext(Dispatchers.Default) {
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeByteArray(photo, 0, photo.size, bounds)
+            var sample = 1
+            while (minOf(bounds.outWidth, bounds.outHeight) / (sample * 2) >= sidePx) sample *= 2
+            BitmapFactory.decodeByteArray(photo, 0, photo.size, BitmapFactory.Options().apply { inSampleSize = sample })
+                ?.asImageBitmap()?.also { cache.put(key, it) }
+        }
+    }
 }
 
 /**
@@ -160,9 +179,10 @@ fun ContactAvatar(name: String, modifier: Modifier = Modifier, size: Dp = 44.dp,
     val p = LocalGlass.current
     val resolver = LocalContext.current.contentResolver
     val sidePx = with(LocalDensity.current) { size.roundToPx() }
-    val image by produceState<ImageBitmap?>(photo?.let { null } ?: photoUri?.let { Thumbnails.cache.get("$it#$sidePx") }, photoUri, photo, sidePx) {
+    val cached = photo?.let { Thumbnails.cache.get(Thumbnails.keyOf(it, sidePx)) } ?: photoUri.takeIf { photo == null }?.let { Thumbnails.cache.get("$it#$sidePx") }
+    val image by produceState(cached, photoUri, photo, sidePx) {
         value = when {
-            photo != null -> withContext(Dispatchers.Default) { BitmapFactory.decodeByteArray(photo, 0, photo.size)?.asImageBitmap() }
+            photo != null -> Thumbnails.load(photo, sidePx)
             photoUri != null -> Thumbnails.load(resolver, photoUri, sidePx)
             else -> null
         }
@@ -206,6 +226,8 @@ fun ContactRow(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     photoUri: String? = null,
+    /** La foto en bytes, para lo que todavía no está en la agenda (un .vcf por importar). */
+    photo: ByteArray? = null,
     starred: Boolean = false,
     starredLabel: String = "",
     trailing: @Composable (() -> Unit)? = null,
@@ -237,7 +259,7 @@ fun ContactRow(
                     Icon(styled(Icons.Rounded.Check), null, Modifier.size(26.dp), tint = readableOn(p.accentFg))
                 }
             } else {
-                ContactAvatar(name, photoUri = photoUri)
+                ContactAvatar(name, photoUri = photoUri, photo = photo)
             }
         }
         if (onPhotoClick != null) {

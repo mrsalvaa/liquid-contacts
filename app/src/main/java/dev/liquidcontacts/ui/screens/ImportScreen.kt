@@ -299,6 +299,7 @@ fun ImportScreen(data: VCardImport.Ok, padding: PaddingValues, onBack: () -> Uni
                 c.displayName.ifBlank { str(R.string.no_name) },
                 choose,
                 subtitle = detail,
+                photo = c.photo,
                 trailing = { GlassChip(actionLabel(current), false, choose, Modifier.padding(start = 8.dp)) },
             )
         }

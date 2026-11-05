@@ -3,6 +3,7 @@ package dev.liquidcontacts.data
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.net.Uri
 import dev.liquidcontacts.R
 import dev.liquidcontacts.contacts.ContactAccount
 import dev.liquidcontacts.core.model.Contact
@@ -52,6 +53,12 @@ object Trash {
     }
 
     private fun photoFile(entry: String, index: Int) = File(dir, "$entry-$index")
+
+    /** La foto a mostrar en la lista: la de la primera ficha que tenga una. */
+    fun photoUri(entry: TrashEntry): String? {
+        val index = entry.fichas.indexOfFirst { it.hasPhoto }
+        return if (index < 0) null else Uri.fromFile(photoFile(entry.id, index)).toString()
+    }
 
     /** Guarda la copia y recién después borra: si la copia falla, el contacto queda. Devuelve las entradas. */
     fun moveToTrash(contactIds: Collection<Long>, now: Long = System.currentTimeMillis()): List<String> {
