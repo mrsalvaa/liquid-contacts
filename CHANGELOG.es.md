@@ -4,7 +4,7 @@
 
 [English](CHANGELOG.md) | **Español**
 
-## Sin publicar
+## 1.3.0
 
 ### Cambios
 - Lo que se guarda en una libreta del servidor (un contacto nuevo, una edición, una importación, un borrado) se sincroniza en el momento, sin tocar "Sincronizar ahora".

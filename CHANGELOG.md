@@ -4,7 +4,7 @@
 
 **English** | [Español](CHANGELOG.es.md)
 
-## Unreleased
+## 1.3.0
 
 ### Changed
 - Anything saved to a server address book (a new contact, an edit, an import, a deletion) syncs right away, without tapping "Sync now".
