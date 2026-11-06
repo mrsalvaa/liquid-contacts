@@ -4,6 +4,14 @@
 
 **English** | [Español](CHANGELOG.es.md)
 
+## Unreleased
+
+### Changed
+- Anything saved to a server address book (a new contact, an edit, an import, a deletion) syncs right away, without tapping "Sync now".
+- Without a connection, the change stays on the phone and a window says it will sync on its own once the connection is back.
+- Background sync and the certificate verification mode are dropdowns that open a window, and there is a new "Every 15 min" option.
+- Each address book shows its server color (for example, Radicale's) as a dot before its name.
+
 ## 1.2.1
 
 ### Changed

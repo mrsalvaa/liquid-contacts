@@ -103,8 +103,8 @@ object Repo {
             // Un guardado o una sincronización generan varios avisos seguidos: se lee una vez.
             contacts.changes().debounce(250).collect {
                 reload()
-                // Un cambio hecho acá o en otra app sobre una libreta se sube pronto.
-                if (SyncEngine.hasLocalChanges()) SyncScheduler.syncSoon()
+                // Un cambio hecho acá o en otra app sobre una libreta se sube en el momento.
+                if (SyncEngine.hasLocalChanges()) SyncScheduler.pushNow()
             }
         }
     }

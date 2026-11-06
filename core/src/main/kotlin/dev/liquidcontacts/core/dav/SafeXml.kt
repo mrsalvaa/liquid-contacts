@@ -15,6 +15,8 @@ object Ns {
     const val DAV = "DAV:"
     const val CARDDAV = "urn:ietf:params:xml:ns:carddav"
     const val CALSERVER = "http://calendarserver.org/ns/"
+    const val APPLE_ICAL = "http://apple.com/ns/ical/"
+    const val INF_IT_AB = "http://inf-it.com/ns/ab/"
 }
 
 /** Árbol mínimo de un documento XML ya leído. */

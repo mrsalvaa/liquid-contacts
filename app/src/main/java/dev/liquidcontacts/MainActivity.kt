@@ -120,6 +120,8 @@ import dev.liquidcontacts.ui.screens.ToastHost
 import dev.liquidcontacts.ui.screens.TrashScreen
 import dev.liquidcontacts.util.preferHighestRefreshRate
 import dev.liquidcontacts.util.str
+import dev.liquidcontacts.sync.SyncScheduler
+import dev.liquidcontacts.ui.screens.offlineNotice
 
 /** Pantallas que se abren encima de las pestañas. */
 sealed interface Overlay {
@@ -185,6 +187,16 @@ fun ContactsUi(
     var sheet by remember { mutableStateOf<SheetSpec?>(null) }
     var prompt by remember { mutableStateOf<PromptSpec?>(null) }
     var dialog by remember { mutableStateOf<DialogSpec?>(null) }
+    // Un cambio para el servidor quedó en el celular por falta de conexión: se avisa con una ventana,
+    // sin tapar otra que esté abierta.
+    var offlinePending by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { SyncScheduler.offline.collect { offlinePending = true } }
+    LaunchedEffect(offlinePending, dialog) {
+        if (offlinePending && dialog == null) {
+            dialog = offlineNotice()
+            offlinePending = false
+        }
+    }
     var toast by remember { mutableStateOf<Pair<String, Long>?>(null) }
     var undo by remember { mutableStateOf<UndoSpec?>(null) }
     var selectionBottom by remember { mutableStateOf<SelectionBottom?>(null) }

@@ -30,7 +30,7 @@ class CardDavTest {
     }
 
     private fun multi(body: String) = MockResponse.Builder().code(207).addHeader("Content-Type", "application/xml").body(
-        """<?xml version="1.0"?><multistatus xmlns="DAV:" xmlns:C="urn:ietf:params:xml:ns:carddav" xmlns:CS="http://calendarserver.org/ns/">$body</multistatus>""",
+        """<?xml version="1.0"?><multistatus xmlns="DAV:" xmlns:C="urn:ietf:params:xml:ns:carddav" xmlns:CS="http://calendarserver.org/ns/" xmlns:ICAL="http://apple.com/ns/ical/" xmlns:AB="http://inf-it.com/ns/ab/">$body</multistatus>""",
     ).build()
 
     private fun ok(href: String, props: String) =
@@ -52,6 +52,29 @@ class CardDavTest {
         assertEquals(listOf("Casa", null), d.books.map { it.name })
         assertEquals(listOf(false, true), d.books.map { it.readOnly })
         assertEquals("c1", d.books[0].ctag)
+    }
+
+    @Test
+    fun leeElColorDeCadaLibreta() {
+        server.enqueue(
+            multi(
+                ok("/ana/casa/", "<resourcetype><collection/><C:addressbook/></resourcetype><ICAL:calendar-color>#1a73e8ff</ICAL:calendar-color>") +
+                    ok("/ana/trabajo/", "<resourcetype><collection/><C:addressbook/></resourcetype><AB:addressbook-color>#E5484D</AB:addressbook-color>") +
+                    ok("/ana/otra/", "<resourcetype><collection/><C:addressbook/></resourcetype><ICAL:calendar-color>rojo</ICAL:calendar-color>"),
+            ),
+        )
+        val books = client().listBooks(server.url("/ana/").toString())
+        assertEquals(listOf(0xFF1A73E8.toInt(), 0xFFE5484D.toInt(), null), books.map { it.color })
+        assertTrue(server.takeRequest().body!!.utf8().contains("calendar-color"))
+    }
+
+    @Test
+    fun propiedadesDeUnaLibreta() {
+        server.enqueue(multi(ok("/ana/casa/", "<CS:getctag>c9</CS:getctag><ICAL:calendar-color>#00000000</ICAL:calendar-color>")))
+        val props = client().props(server.url("/ana/casa/").toString())
+        assertEquals("c9", props.ctag)
+        // Transparente no se vería: queda opaco.
+        assertEquals(0xFF000000.toInt(), props.color)
     }
 
     @Test

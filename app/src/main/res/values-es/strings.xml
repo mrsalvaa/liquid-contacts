@@ -261,6 +261,10 @@
     <string name="server_manual">Solo a mano</string>
     <string name="server_every_min">Cada %1$d min</string>
     <string name="server_every_h">Cada %1$d h</string>
+    <string name="server_interval_every">Cada cuánto</string>
+    <string name="server_cert_mode">Cómo se verifica</string>
+    <string name="sync_offline_title">Guardado en el celular</string>
+    <string name="sync_offline_text">No hay conexión con el servidor. El cambio quedó guardado en este celular y se sincroniza solo apenas vuelva la conexión.</string>
     <string name="server_sync_now">Sincronizar ahora</string>
     <string name="server_sync_ok">Sincronizado</string>
     <string name="server_sync_wait">El servidor pidió esperar. Se reintenta más tarde.</string>

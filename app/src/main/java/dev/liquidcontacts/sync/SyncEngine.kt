@@ -211,7 +211,7 @@ object SyncEngine {
             }
             val ctag = runCatching { client(s, passwords.load(PASSWORD_ID)!!, trustOf(s)).ctag(book.url) }.getOrNull()
             store.update { st ->
-                st.copy(books = st.books.filterNot { it.url == book.url } + BookState(book.url, book.name ?: name, name, book.readOnly, ctag, summary.total, true, lastSync = System.currentTimeMillis()))
+                st.copy(books = st.books.filterNot { it.url == book.url } + BookState(book.url, book.name ?: name, name, book.readOnly, ctag, summary.total, true, lastSync = System.currentTimeMillis(), color = book.color))
             }
             SyncScheduler.refresh()
             saved
@@ -224,6 +224,21 @@ object SyncEngine {
         val taken = s.books.map { it.accountName }.toSet()
         return if (base !in taken) base else "$base ${book.url.hashCode().toUInt().toString(16)}"
     }
+
+    /** Los colores de las libretas ya elegidas, tomados de una búsqueda en el servidor. */
+    fun rememberColors(found: List<dev.liquidcontacts.core.dav.RemoteBook>) {
+        val byUrl = found.associateBy { it.url }
+        if (store.value.books.none { b -> byUrl[b.url]?.let { it.color != b.color } == true }) return
+        store.update { s -> s.copy(books = s.books.map { b -> byUrl[b.url]?.let { b.copy(color = it.color) } ?: b }) }
+    }
+
+    /** Volvió la red: un error de red anterior ya no tiene por qué hacer esperar. */
+    fun forgetNetworkWait() {
+        if (store.value.lastError == "Network" && store.value.waitUntil > 0) store.update { it.copy(waitUntil = 0) }
+    }
+
+    /** El último intento falló por la red (sin conexión, DNS, tiempo de espera). */
+    val lastFailedByNetwork: Boolean get() = store.value.lastError == "Network"
 
     // ---------------------------------------------------------------- sincronización
 
@@ -281,7 +296,10 @@ object SyncEngine {
         val cards = cardsOf(b)
         val local = cards.cards()
         val changedHere = local.any { (it.dirty || it.deleted) && it.rawId !in b.conflicts.map { c -> c.rawId } }
-        val ctag = dav.ctag(url)
+        val props = dav.props(url)
+        val ctag = props.ctag
+        // El color se puede cambiar en el servidor en cualquier momento: se toma en cada pasada.
+        if (props.color != b.color) updateBook(url) { it.copy(color = props.color) }
         if (ctag != null && ctag == b.ctag && !changedHere && !b.massDeleteConfirmed) return
 
         val remote = dav.listEtags(url)

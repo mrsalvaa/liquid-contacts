@@ -261,6 +261,10 @@
     <string name="server_manual">Manual only</string>
     <string name="server_every_min">Every %1$d min</string>
     <string name="server_every_h">Every %1$d h</string>
+    <string name="server_interval_every">How often</string>
+    <string name="server_cert_mode">How it is verified</string>
+    <string name="sync_offline_title">Saved on this phone</string>
+    <string name="sync_offline_text">The server can\'t be reached. The change is saved on this phone and will sync on its own as soon as the connection is back.</string>
     <string name="server_sync_now">Sync now</string>
     <string name="server_sync_ok">Synced</string>
     <string name="server_sync_wait">The server asked to wait. It will retry later.</string>

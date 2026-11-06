@@ -8,8 +8,14 @@ import okhttp3.HttpUrl
 import java.net.InetAddress
 import java.net.UnknownHostException
 
-/** Una libreta del servidor. La URL es su identidad; el nombre puede cambiar. */
-data class RemoteBook(val url: String, val name: String?, val ctag: String?, val readOnly: Boolean)
+/**
+ * Una libreta del servidor. La URL es su identidad; el nombre puede cambiar. [color] es ARGB, el que
+ * le puso el servidor (Radicale lo guarda como calendar-color de Apple), o null si no tiene.
+ */
+data class RemoteBook(val url: String, val name: String?, val ctag: String?, val readOnly: Boolean, val color: Int? = null)
+
+/** Indicador de cambios y color de una libreta. */
+data class BookProps(val ctag: String?, val color: Int?)
 
 data class BookDiscovery(val principalUrl: String, val homeUrl: String, val books: List<RemoteBook>)
 
@@ -54,12 +60,22 @@ class CardDav(private val dav: DavClient) {
                     name = r[DISPLAYNAME]?.text?.takeIf { it.isNotBlank() },
                     ctag = r[GETCTAG]?.text?.takeIf { it.isNotEmpty() },
                     readOnly = r[CURRENT_USER_PRIVILEGE_SET]?.let { !canWrite(it) } ?: false,
+                    color = colorOf(r),
                 )
             }
 
     /** Solo el indicador de cambios de una libreta. */
     fun ctag(bookUrl: String): String? =
         dav.propfind(dav.url(bookUrl), 0, listOf(GETCTAG)).firstNotNullOfOrNull { it[GETCTAG]?.text?.takeIf(String::isNotEmpty) }
+
+    /** Indicador de cambios y color de una libreta, en una sola consulta. */
+    fun props(bookUrl: String): BookProps {
+        val r = dav.propfind(dav.url(bookUrl), 0, listOf(GETCTAG, CALENDAR_COLOR, ADDRESSBOOK_COLOR)).firstOrNull()
+        return BookProps(r?.get(GETCTAG)?.text?.takeIf(String::isNotEmpty), r?.let(::colorOf))
+    }
+
+    private fun colorOf(r: DavResponse): Int? =
+        (r[CALENDAR_COLOR]?.text?.let(::parseColor)) ?: r[ADDRESSBOOK_COLOR]?.text?.let(::parseColor)
 
     /** URL y ETag de cada contacto de la libreta, sin el contenido. */
     fun listEtags(bookUrl: String): Map<String, String?> {
@@ -113,11 +129,25 @@ class CardDav(private val dav: DavClient) {
         val GETETAG = QName(Ns.DAV, "getetag")
         val GETCTAG = QName(Ns.CALSERVER, "getctag")
         val CURRENT_USER_PRIVILEGE_SET = QName(Ns.DAV, "current-user-privilege-set")
+        /** El color de Radicale (y de Apple), también en libretas. */
+        val CALENDAR_COLOR = QName(Ns.APPLE_ICAL, "calendar-color")
+        /** El de InfCloud y otros clientes. */
+        val ADDRESSBOOK_COLOR = QName(Ns.INF_IT_AB, "addressbook-color")
         private val PRIVILEGE = QName(Ns.DAV, "privilege")
         private val WRITE = QName(Ns.DAV, "write")
         private val WRITE_CONTENT = QName(Ns.DAV, "write-content")
         private val ALL = QName(Ns.DAV, "all")
-        private val BOOK_PROPS = listOf(RESOURCETYPE, DISPLAYNAME, GETCTAG, CURRENT_USER_PRIVILEGE_SET)
+        private val BOOK_PROPS = listOf(RESOURCETYPE, DISPLAYNAME, GETCTAG, CURRENT_USER_PRIVILEGE_SET, CALENDAR_COLOR, ADDRESSBOOK_COLOR)
+
+        /** "#RRGGBB" o "#RRGGBBAA" (formato de Apple) → ARGB. Igual que en Liquid Calendar. */
+        fun parseColor(text: String): Int? {
+            val hex = text.trim().removePrefix("#")
+            if (hex.length != 6 && hex.length != 8 || hex.any { it.digitToIntOrNull(16) == null }) return null
+            val rgb = hex.substring(0, 6).toLong(16)
+            val alpha = if (hex.length == 8) hex.substring(6, 8).toLong(16) else 0xFF
+            // Un color transparente no se vería: se usa opaco.
+            return ((if (alpha == 0L) 0xFF else alpha) shl 24 or rgb).toInt()
+        }
 
         private fun canWrite(set: XmlElement): Boolean = set.all(PRIVILEGE).any { p -> p.has(WRITE) || p.has(WRITE_CONTENT) || p.has(ALL) }
     }

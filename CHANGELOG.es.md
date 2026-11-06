@@ -4,6 +4,14 @@
 
 [English](CHANGELOG.md) | **Español**
 
+## Sin publicar
+
+### Cambios
+- Lo que se guarda en una libreta del servidor (un contacto nuevo, una edición, una importación, un borrado) se sincroniza en el momento, sin tocar "Sincronizar ahora".
+- Sin conexión, el cambio queda guardado en el celular y una ventana avisa que se sincroniza solo apenas vuelva la conexión.
+- La sincronización en segundo plano y el modo de verificar el certificado son desplegables con ventana emergente, y se suma la opción "Cada 15 min".
+- Cada libreta muestra el color que tiene en el servidor (por ejemplo, el de Radicale) en un círculo antes del nombre.
+
 ## 1.2.1
 
 ### Cambios

@@ -5,6 +5,13 @@ import android.text.format.DateUtils
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
@@ -47,6 +54,7 @@ import dev.liquidcontacts.sync.SyncEngine
 import dev.liquidcontacts.sync.SyncScheduler
 import dev.liquidcontacts.sync.TestResult
 import dev.liquidcontacts.ui.components.DangerButton
+import dev.liquidcontacts.ui.components.Dropdown
 import dev.liquidcontacts.ui.components.SwitchRow
 import dev.liquidcontacts.ui.components.dangerText
 import dev.liquidcontacts.ui.glass.DialogSpec
@@ -114,6 +122,7 @@ fun ServerScreen(padding: PaddingValues, onBack: () -> Unit, onFirstSync: (Remot
             when (val r = SyncEngine.test(url, user.trim(), pass, allowHttp, validPin, effectiveCa)) {
                 is TestResult.Ok -> {
                     books = r.discovery.books
+                    SyncEngine.rememberColors(r.discovery.books)
                     message = plural(R.plurals.server_ok, r.discovery.books.size)
                     if (saveAfter && SyncEngine.changesServer(url, allowHttp)) {
                         message = str(R.string.server_err_change)
@@ -170,7 +179,7 @@ fun ServerScreen(padding: PaddingValues, onBack: () -> Unit, onFirstSync: (Remot
 
         SectionLabel(str(R.string.server_cert))
         GlassCard {
-            ChipRow(TrustMode.entries, mode, {
+            Dropdown(str(R.string.server_cert_mode), TrustMode.entries, mode, {
                 str(
                     when (it) {
                         TrustMode.SYSTEM -> R.string.server_cert_system
@@ -222,6 +231,7 @@ fun ServerScreen(padding: PaddingValues, onBack: () -> Unit, onFirstSync: (Remot
                         b.name ?: b.url.trimEnd('/').substringAfterLast('/'),
                         subtitle = str(if (b.readOnly) R.string.server_book_new_readonly else R.string.server_book_new),
                         onClick = { onFirstSync(b) },
+                        leading = { BookDot(b.color) },
                     )
                 }
                 if (s.books.isEmpty() && books == null) {
@@ -234,7 +244,7 @@ fun ServerScreen(padding: PaddingValues, onBack: () -> Unit, onFirstSync: (Remot
             if (s.books.isNotEmpty()) {
                 SectionLabel(str(R.string.server_interval))
                 GlassCard {
-                    ChipRow(SyncScheduler.INTERVALS, s.syncIntervalMinutes, { m ->
+                    Dropdown(str(R.string.server_interval_every), SyncScheduler.INTERVALS, s.syncIntervalMinutes.takeIf { it in SyncScheduler.INTERVALS }, { m ->
                         when {
                             m == 0 -> str(R.string.server_manual)
                             m < 60 -> str(R.string.server_every_min, m)
@@ -302,7 +312,7 @@ private fun BookRow(b: BookState, onConflicts: (String) -> Unit) {
     val dialog = LocalDialog.current
     val scope = rememberCoroutineScope()
     val last = if (b.lastSync > 0) DateUtils.getRelativeTimeSpanString(b.lastSync).toString() else "—"
-    SettingRow(b.name, subtitle = str(R.string.server_book_status, plural(R.plurals.contacts_count, b.lastCount), last))
+    SettingRow(b.name, subtitle = str(R.string.server_book_status, plural(R.plurals.contacts_count, b.lastCount), last), leading = { BookDot(b.color) })
     if (b.failedUploads > 0) Text(plural(R.plurals.server_failed_uploads, b.failedUploads), fontSize = 13.sp, color = p.dangerText)
     b.hold?.let { h ->
         Column(Modifier.padding(vertical = 6.dp)) {
@@ -348,6 +358,14 @@ private fun BookRow(b: BookState, onConflicts: (String) -> Unit) {
             },
         )
     }, Modifier.fillMaxWidth().padding(vertical = 6.dp))
+}
+
+/** El círculo con el color de la libreta en el servidor, como los calendarios en Liquid Calendar. */
+@Composable
+private fun BookDot(color: Int?) {
+    if (color == null) return
+    Box(Modifier.size(14.dp).clip(CircleShape).background(Color(color)))
+    Spacer(Modifier.width(10.dp))
 }
 
 fun errorText(e: DavException): String = str(

@@ -35,6 +35,8 @@ data class BookState(
     val conflicts: List<SyncConflict> = emptyList(),
     val failedUploads: Int = 0,
     val lastSync: Long = 0,
+    /** Color de la libreta en el servidor (ARGB), o null si no tiene. */
+    val color: Int? = null,
 )
 
 /**
