@@ -19,13 +19,9 @@
                 android:startColor="#4DFFFFFF" android:endColor="#00FFFFFF" />
         </aapt:attr>
     </path>
-    <!-- Persona -->
-    <path android:pathData="M54,36a9,9 0,1 1,0,18a9,9 0,1 1,0,-18z" android:fillColor="#E6FFFFFF" />
-    <!-- Cuerpo entero: la elipse sigue de largo y el borde la tapa -->
-    <group>
-        <clip-path android:pathData="M40,26h28a12,12 0,0 1,12,12v32a12,12 0,0 1,-12,12h-28a12,12 0,0 1,-12,-12v-32a12,12 0,0 1,12,-12z" />
-        <path android:pathData="M32,85a22,26 0,1 1,44,0a22,26 0,1 1,-44,0z" android:fillColor="#B3FFFFFF" />
-    </group>
+    <!-- Persona: busto entero dentro de la ficha, sin tocar el borde -->
+    <path android:pathData="M54,36.5a8.5,8.5 0,1 1,0,17a8.5,8.5 0,1 1,0,-17z" android:fillColor="#E6FFFFFF" />
+    <path android:pathData="M39,72a15,14 0,0 1,30,0a2.5,2.5 0,0 1,-2.5,2.5h-25a2.5,2.5 0,0 1,-2.5,-2.5z" android:fillColor="#B3FFFFFF" />
     <!-- Punto de énfasis -->
-    <path android:pathData="M69,35a3,3 0,1 1,0,6a3,3 0,1 1,0,-6z" android:fillColor="#FFF472B6" />
+    <path android:pathData="M69,35.5a2.5,2.5 0,1 1,0,5a2.5,2.5 0,1 1,0,-5z" android:fillColor="#FFFF4D6D" />
 </vector>

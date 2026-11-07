@@ -4,6 +4,13 @@
 
 [English](CHANGELOG.md) | **Español**
 
+## 1.3.3
+
+### Cambios
+- Íconos nuevos. El predeterminado (Liquid) tiene un fondo grafito, más sobrio, en vez del brillo celeste y rosa, y su detalle de color ahora es el mismo rojo en toda la suite. El de estilo Material es de un color pleno con el dibujo en blanco y más chico, sin el marco celeste.
+- La persona del ícono predeterminado ya no llega hasta el borde de la ficha.
+- Ajustes: "Color de énfasis" ahora es solo "Énfasis".
+
 ## 1.3.2
 
 ### Arreglos

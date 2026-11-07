@@ -4,6 +4,13 @@
 
 **English** | [Español](CHANGELOG.es.md)
 
+## 1.3.3
+
+### Changed
+- New app icons. The default (Liquid) icon has a sober graphite background instead of the cyan and pink glow, and its accent is now the same red across the suite. The Material icon is a solid color with a smaller white drawing, without the light-blue frame.
+- The person in the default icon no longer reaches the edge of the card.
+- Settings: "Accent color" is now just "Accent".
+
 ## 1.3.2
 
 ### Fixed
