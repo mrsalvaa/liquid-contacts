@@ -124,17 +124,17 @@ Get the APK from [Releases](../../releases) and install it.
 Check that the file wasn't altered:
 
 ```bash
-sha256sum -c liquid-contacts-v1.3.2.apk.sha256
+sha256sum -c liquid-contacts-v1.3.3.apk.sha256
 ```
 
 ```
-f0274c54d121f77ba2b23a8301692d2505c7681a123c6ebdfa13cd0406698ad1  liquid-contacts-v1.3.2.apk
+c3371a4343e9fff0417464ac16894580276c9b29005bf31de8837d2d3dc2cb16  liquid-contacts-v1.3.3.apk
 ```
 
 And that it's signed with the project's key (SHA-256 fingerprint of the certificate):
 
 ```bash
-apksigner verify --print-certs liquid-contacts-v1.3.2.apk
+apksigner verify --print-certs liquid-contacts-v1.3.3.apk
 ```
 
 ```
