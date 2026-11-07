@@ -4,7 +4,7 @@
 
 **English** | [Español](CHANGELOG.es.md)
 
-## Unreleased
+## 1.4.0
 
 ### Changed
 - Labels: creating, renaming or deleting one shows up right away, without restarting the app. Also on the contact screen and in each label.

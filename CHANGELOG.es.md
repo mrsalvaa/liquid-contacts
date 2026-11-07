@@ -4,7 +4,7 @@
 
 [English](CHANGELOG.md) | **Español**
 
-## Sin publicar
+## 1.4.0
 
 ### Cambios
 - Etiquetas: crear, renombrar o borrar una se ve en el momento, sin reiniciar la app. También en la ficha del contacto y dentro de cada etiqueta.
