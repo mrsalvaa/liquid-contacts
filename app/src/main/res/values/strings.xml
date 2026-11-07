@@ -67,7 +67,8 @@
     <string name="note">Note</string>
     <string name="delete_contact">Delete contact</string>
     <string name="delete_contact_title">Delete “%1$s”?</string>
-    <string name="delete_contact_text">The contact goes to the trash for %1$d days. It is removed from this phone and every account where it is saved; if it is on your server, from there too on the next sync. Restoring it uploads it again.</string>
+    <string name="delete_contact_text">The contact goes to the trash for %1$d days. It is removed from this phone and every account where it is saved.</string>
+    <string name="delete_contact_server">It is also deleted right now from the server “%1$s”, and from other devices that sync it. If you restore it from the trash, it is uploaded again.</string>
     <string name="choose_photo">Choose photo</string>
     <string name="add_photo">Add photo</string>
     <string name="change_photo">Change photo</string>
@@ -382,10 +383,13 @@
     <string name="trash_hint">Contacts deleted from this app stay here for %1$d days, then they are removed automatically. Anything deleted in another app or on the server does not arrive here.</string>
     <string name="trash_restore">Restore</string>
     <string name="trash_restored">“%1$s” restored</string>
+    <string name="trash_restored_server">“%1$s” restored: it is uploaded to the server again</string>
+    <string name="trash_was_on_server">deleted from the server</string>
     <string name="trash_restore_failed">Could not restore “%1$s”</string>
     <string name="trash_forever">Delete forever</string>
     <string name="trash_forever_title">Delete “%1$s” forever?</string>
     <string name="trash_forever_text">This cannot be undone.</string>
+    <string name="trash_forever_server">It is no longer on the server: this is the last copy and it cannot be uploaded again afterwards.</string>
     <string name="trash_empty_action">Empty trash</string>
     <string name="trash_empty_title">Empty the trash?</string>
     <string name="delete_failed">The copy could not be saved: the contact was not deleted.</string>

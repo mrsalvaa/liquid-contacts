@@ -9,6 +9,8 @@ import dev.liquidcontacts.contacts.ContactAccount
 import dev.liquidcontacts.core.model.Contact
 import dev.liquidcontacts.core.vcard.VCardFormat
 import dev.liquidcontacts.core.vcard.VCards
+import dev.liquidcontacts.sync.SyncEngine
+import dev.liquidcontacts.sync.SyncScheduler
 import kotlinx.serialization.Serializable
 import java.io.File
 import java.util.UUID
@@ -82,7 +84,11 @@ object Trash {
             contactId to TrashEntry(id, snapshot.first().contact.displayName, now, fichas)
         }
         store.update { it.copy(entries = entries.map { e -> e.second } + it.entries) }
+        // Antes de borrar: después la ficha puede no existir más y no habría cómo saber qué borrar allá.
+        SyncEngine.queueRemoteDeletes(entries.flatMap { (_, e) -> e.fichas.filter { it.accountType == ours && it.accountName != null }.map { it.rawId to it.accountName!! } })
         entries.forEach { Repo.contacts.delete(it.first) }
+        // Se borra del servidor en el momento (o queda en espera, con su aviso, si no hay conexión).
+        SyncScheduler.pushNow()
         return entries.map { it.second.id }
     }
 
@@ -123,6 +129,25 @@ object Trash {
         store.value.entries
             .filter { e -> now - e.deletedAt > DAYS * DAY_MS || e.fichas.all { Repo.contacts.isRawLive(it.rawId) } }
             .forEach(::forget)
+    }
+
+    /** Si alguno de estos contactos tiene una ficha en una libreta del servidor. */
+    fun onServer(contactIds: Collection<Long>): Boolean {
+        val ours = app.getString(R.string.account_type)
+        return contactIds.any { id -> Repo.contacts.rawContactIds(id).any { (_, account) -> account.type == ours } }
+    }
+
+    /** Si la entrada venía de una libreta del servidor: allá ya se borró, y restaurarla la vuelve a subir. */
+    fun fromServer(entry: TrashEntry): Boolean {
+        val ours = app.getString(R.string.account_type)
+        return entry.fichas.any { it.accountType == ours }
+    }
+
+    /** Si al restaurarla vuelve a una libreta del servidor (la libreta sigue sincronizándose). */
+    fun returnsToServer(entry: TrashEntry): Boolean {
+        val ours = app.getString(R.string.account_type)
+        val available = Repo.writableAccounts().toSet()
+        return entry.fichas.any { it.accountType == ours && ContactAccount(it.accountType, it.accountName) in available }
     }
 
     /** Días que le quedan antes de eliminarse solo (al menos 1). */

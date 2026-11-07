@@ -67,7 +67,8 @@
     <string name="note">Nota</string>
     <string name="delete_contact">Borrar contacto</string>
     <string name="delete_contact_title">¿Borrar “%1$s”?</string>
-    <string name="delete_contact_text">El contacto va a la papelera por %1$d días. Se borra de este celular y de todas las cuentas donde esté guardado; si está en tu servidor, también de ahí en la próxima sincronización. Al restaurarlo se vuelve a subir.</string>
+    <string name="delete_contact_text">El contacto va a la papelera por %1$d días. Se borra de este celular y de todas las cuentas donde esté guardado.</string>
+    <string name="delete_contact_server">También se borra ahora del servidor “%1$s”, y de los otros dispositivos que lo sincronizan. Si lo restaurás desde la papelera, se vuelve a subir.</string>
     <string name="choose_photo">Elegir foto</string>
     <string name="add_photo">Agregar foto</string>
     <string name="change_photo">Cambiar foto</string>
@@ -400,10 +401,13 @@
     <string name="trash_hint">Los contactos borrados desde esta app quedan acá %1$d días y después se eliminan solos. Lo que se borre en otra app o en el servidor no llega acá.</string>
     <string name="trash_restore">Restaurar</string>
     <string name="trash_restored">“%1$s” restaurado</string>
+    <string name="trash_restored_server">“%1$s” restaurado: se vuelve a subir al servidor</string>
+    <string name="trash_was_on_server">borrado del servidor</string>
     <string name="trash_restore_failed">No se pudo restaurar “%1$s”</string>
     <string name="trash_forever">Eliminar para siempre</string>
     <string name="trash_forever_title">¿Eliminar “%1$s” para siempre?</string>
     <string name="trash_forever_text">Esto no se puede deshacer.</string>
+    <string name="trash_forever_server">Ya no está en el servidor: esta es la última copia y después no se puede volver a subir.</string>
     <string name="trash_empty_action">Vaciar papelera</string>
     <string name="trash_empty_title">¿Vaciar la papelera?</string>
     <string name="delete_failed">No se pudo guardar la copia: el contacto no se borró.</string>

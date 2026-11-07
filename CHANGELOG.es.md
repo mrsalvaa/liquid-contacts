@@ -4,6 +4,15 @@
 
 [English](CHANGELOG.md) | **Español**
 
+## Sin publicar
+
+### Arreglos
+- Borrar un contacto de una libreta no lo borraba del servidor en algunos celulares (Samsung): ahora se borra en el momento, y sin conexión queda en espera hasta que vuelva.
+
+### Cambios
+- Al borrar un contacto que está en el servidor, la ventana avisa en rojo que también se borra de ahí (y de los otros dispositivos que lo sincronizan) y que restaurarlo lo vuelve a subir.
+- En la papelera, los contactos que venían del servidor lo dicen; al restaurarlos se avisa que se vuelven a subir, y al eliminarlos para siempre, que es la última copia.
+
 ## 1.3.0
 
 ### Cambios

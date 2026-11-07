@@ -29,7 +29,9 @@ import dev.liquidcontacts.core.tls.ServerTrust
 import dev.liquidcontacts.core.tls.TrustConfig
 import dev.liquidcontacts.core.vcard.ImportMatcher
 import dev.liquidcontacts.core.vcard.VCards
+import dev.liquidcontacts.core.sync.LocalCard
 import dev.liquidcontacts.data.BookState
+import dev.liquidcontacts.data.PendingDelete
 import dev.liquidcontacts.data.CredentialStore
 import dev.liquidcontacts.data.JsonStore
 import dev.liquidcontacts.data.Repo
@@ -113,7 +115,23 @@ object SyncEngine {
     /** Si alguna libreta tiene cambios de acá sin subir. Sin servidor, nunca. */
     fun hasLocalChanges(): Boolean = store.value.books.any { b ->
         val conflicted = b.conflicts.map { it.rawId }
-        b.firstSyncDone && b.hold == null && cardsOf(b).cards().any { (it.dirty || it.deleted) && it.rawId !in conflicted }
+        b.firstSyncDone && b.hold == null &&
+            (b.pendingDeletes.isNotEmpty() || cardsOf(b).cards().any { (it.dirty || it.deleted) && it.rawId !in conflicted })
+    }
+
+    /**
+     * Antes de borrar fichas desde la app: anota qué borrar en el servidor. [raws] son fichas con el
+     * nombre de su cuenta; las que no son de una libreta, o que nunca se subieron, se ignoran.
+     */
+    fun queueRemoteDeletes(raws: List<Pair<Long, String>>) {
+        if (raws.isEmpty()) return
+        val books = store.value.books.filter { it.firstSyncDone }
+        raws.groupBy({ it.second }, { it.first }).forEach { (accountName, ids) ->
+            val b = books.firstOrNull { it.accountName == accountName } ?: return@forEach
+            val cards = cardsOf(b)
+            val found = ids.mapNotNull { id -> cards.href(id)?.let { PendingDelete(it, cards.etag(id)) } }
+            if (found.isNotEmpty()) updateBook(b.url) { it.copy(pendingDeletes = (it.pendingDeletes + found).distinctBy { d -> d.href }) }
+        }
     }
 
     private fun recordLoginFailure() {
@@ -295,14 +313,14 @@ object SyncEngine {
         if (b.hold != null && !b.massDeleteConfirmed) return
         val cards = cardsOf(b)
         val local = cards.cards()
-        val changedHere = local.any { (it.dirty || it.deleted) && it.rawId !in b.conflicts.map { c -> c.rawId } }
+        val changedHere = b.pendingDeletes.isNotEmpty() || local.any { (it.dirty || it.deleted) && it.rawId !in b.conflicts.map { c -> c.rawId } }
         val props = dav.props(url)
         val ctag = props.ctag
         // El color se puede cambiar en el servidor en cualquier momento: se toma en cada pasada.
         if (props.color != b.color) updateBook(url) { it.copy(color = props.color) }
         if (ctag != null && ctag == b.ctag && !changedHere && !b.massDeleteConfirmed) return
 
-        val remote = dav.listEtags(url)
+        val remote = deletePending(dav, url, local, dav.listEtags(url))
         // Conflictos cuya ficha ya no existe se dan por resueltos.
         val conflicts = b.conflicts.filter { c -> local.any { it.rawId == c.rawId } }
         val ops = ContactSyncPlan.plan(remote, local, skip = conflicts.map { it.rawId }.toSet())
@@ -398,6 +416,48 @@ object SyncEngine {
                 lastSync = System.currentTimeMillis(),
             )
         }
+    }
+
+    /**
+     * Borra en el servidor lo que se borró desde la app (ver [BookState.pendingDeletes]) y devuelve
+     * lo que queda allá. Solo con la versión que se borró: si alguien lo cambió en el servidor
+     * mientras tanto, no se borra y vuelve a bajar. Un error de red corta y queda para la próxima.
+     */
+    private fun deletePending(dav: CardDav, url: String, local: List<LocalCard>, remote: Map<String, String?>): Map<String, String?> {
+        val pending = book(url).pendingDeletes
+        if (pending.isEmpty()) return remote
+        val gone = HashSet<String>()
+        val settled = HashSet<String>()
+        try {
+            for (d in pending) {
+                val now = remote[d.href]
+                when {
+                    // Ya no está en el servidor.
+                    !remote.containsKey(d.href) -> settled += d.href
+                    // La ficha volvió (por ejemplo, desde el freno de borrado masivo): no se borra.
+                    local.any { it.href == d.href && !it.deleted } -> settled += d.href
+                    // Cambió allá después de borrarlo acá: se queda lo del servidor.
+                    d.etag != null && now != null && now != d.etag -> settled += d.href
+                    else -> {
+                        try {
+                            dav.delete(d.href, d.etag ?: now ?: "*")
+                            gone += d.href
+                        } catch (e: DavException.NotFound) {
+                            gone += d.href
+                        } catch (e: DavException.PreconditionFailed) {
+                            Unit // Cambió justo ahora: se queda y vuelve a bajar.
+                        }
+                        settled += d.href
+                    }
+                }
+            }
+        } finally {
+            updateBook(url) { it.copy(pendingDeletes = it.pendingDeletes.filterNot { d -> d.href in settled }) }
+        }
+        // Las fichas que Android sí dejó marcadas como borradas se quitan del todo.
+        val cards = cardsOf(book(url))
+        local.filter { it.deleted && it.href in gone }.forEach { cards.purge(it.rawId) }
+        return remote - gone
     }
 
     /** Guarda en el celu lo que vino del servidor. Una tarjeta ilegible se saltea sin borrar nada. */

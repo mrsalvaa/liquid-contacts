@@ -16,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -25,6 +26,7 @@ import dev.liquidcontacts.data.Trash
 import dev.liquidcontacts.data.TrashEntry
 import dev.liquidcontacts.ui.components.ContactRow
 import dev.liquidcontacts.ui.components.DangerButton
+import dev.liquidcontacts.ui.components.dangerText
 import dev.liquidcontacts.ui.glass.DialogSpec
 import dev.liquidcontacts.ui.glass.GlassButton
 import dev.liquidcontacts.ui.glass.LocalActionSheet
@@ -47,12 +49,18 @@ fun TrashScreen(padding: PaddingValues, onBack: () -> Unit) {
     val state by Trash.store.state.collectAsStateWithLifecycle()
 
     fun restore(e: TrashEntry) = Repo.launch {
+        val toServer = runCatching { Trash.returnsToServer(e) }.getOrDefault(false)
         val done = runCatching { Trash.restore(listOf(e.id)) }.isSuccess
-        withContext(Dispatchers.Main) { toast(str(if (done) R.string.trash_restored else R.string.trash_restore_failed, e.name.ifBlank { str(R.string.no_name) })) }
+        // Si venía del servidor, al restaurarlo se vuelve a subir (o espera la conexión, con su aviso).
+        val ok = if (toServer) R.string.trash_restored_server else R.string.trash_restored
+        withContext(Dispatchers.Main) { toast(str(if (done) ok else R.string.trash_restore_failed, e.name.ifBlank { str(R.string.no_name) })) }
     }
-    fun confirm(title: String, action: String, run: () -> Unit) = dialog(
+    fun confirm(title: String, action: String, fromServer: Boolean, run: () -> Unit) = dialog(
         DialogSpec(title) { dismiss ->
             Text(str(R.string.trash_forever_text), fontSize = 15.sp, color = p.contentSecondary)
+            if (fromServer) {
+                Text(str(R.string.trash_forever_server), Modifier.padding(top = 10.dp), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = p.dangerText)
+            }
             Spacer(Modifier.height(16.dp))
             DangerButton(action, {
                 dismiss()
@@ -73,7 +81,7 @@ fun TrashScreen(padding: PaddingValues, onBack: () -> Unit) {
         if (state.entries.isNotEmpty()) {
             item(key = "empty-all") {
                 DangerButton(str(R.string.trash_empty_action), {
-                    confirm(str(R.string.trash_empty_title), str(R.string.trash_empty_action)) { Trash.purgeAll() }
+                    confirm(str(R.string.trash_empty_title), str(R.string.trash_empty_action), state.entries.any(Trash::fromServer)) { Trash.purgeAll() }
                 }, Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 4.dp))
             }
         }
@@ -94,13 +102,14 @@ fun TrashScreen(padding: PaddingValues, onBack: () -> Unit) {
                             listOf(
                                 SheetAction(str(R.string.trash_restore), Icons.Rounded.RestoreFromTrash) { restore(e) },
                                 SheetAction(str(R.string.trash_forever), Icons.Rounded.DeleteForever) {
-                                    confirm(str(R.string.trash_forever_title, name), str(R.string.trash_forever)) { Trash.purge(listOf(e.id)) }
+                                    confirm(str(R.string.trash_forever_title, name), str(R.string.trash_forever), Trash.fromServer(e)) { Trash.purge(listOf(e.id)) }
                                 },
                             ),
                         ),
                     )
                 },
-                subtitle = plural(R.plurals.trash_days_left, Trash.daysLeft(e), Trash.daysLeft(e)),
+                subtitle = plural(R.plurals.trash_days_left, Trash.daysLeft(e), Trash.daysLeft(e)) +
+                    if (Trash.fromServer(e)) " · " + str(R.string.trash_was_on_server) else "",
                 photoUri = Trash.photoUri(e),
             )
         }

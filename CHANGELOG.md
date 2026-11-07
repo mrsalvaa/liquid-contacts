@@ -4,6 +4,15 @@
 
 **English** | [Español](CHANGELOG.es.md)
 
+## Unreleased
+
+### Fixed
+- Deleting a contact from an address book did not delete it from the server on some phones (Samsung): now it is deleted right away, and without a connection it waits until the connection is back.
+
+### Changed
+- Deleting a contact that is on the server shows a red warning that it is deleted there too (and from other devices that sync it) and that restoring it uploads it again.
+- In the trash, contacts that came from the server say so; restoring them says they are uploaded again, and deleting them forever warns that it is the last copy.
+
 ## 1.3.0
 
 ### Changed

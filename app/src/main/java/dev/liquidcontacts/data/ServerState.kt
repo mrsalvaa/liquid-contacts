@@ -19,6 +19,10 @@ data class SyncConflict(
 @Serializable
 data class SyncHold(val onServerSide: Boolean, val before: Int, val now: Int, val deletes: Int)
 
+/** Un contacto borrado acá que falta borrar en el servidor: su URL y la versión que se borró. */
+@Serializable
+data class PendingDelete(val href: String, val etag: String?)
+
 /** Una libreta elegida, con su cuenta de Android. */
 @Serializable
 data class BookState(
@@ -37,6 +41,12 @@ data class BookState(
     val lastSync: Long = 0,
     /** Color de la libreta en el servidor (ARGB), o null si no tiene. */
     val color: Int? = null,
+    /**
+     * Borrados hechos en esta app que faltan subir. Se anotan antes de borrar la ficha porque
+     * algunos celulares (Samsung) la eliminan del todo en vez de marcarla como borrada, y entonces
+     * la sincronización no tendría cómo enterarse.
+     */
+    val pendingDeletes: List<PendingDelete> = emptyList(),
 )
 
 /**

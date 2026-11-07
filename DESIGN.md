@@ -130,6 +130,7 @@ phone y messages.
 | **Aviso "directo al ajuste":** no se movía. | Se pedía traer a la vista el título, que ya estaba visible. | `BringIntoViewRequester` sobre el campo mismo. |
 | **Datos de prueba mezclados:** un contacto de prueba puede juntarse con uno real. | Android agrega fichas por nombre y número. | Marcar la ficha al crearla (`SOURCE_ID`) y borrar por esa marca, nunca por nombre, etiqueta ni contacto. |
 
+| **Borrar no llegaba al servidor:** el contacto desaparecía del celular pero seguía en el servidor (y volvía a bajar si cambiaba algo allá). | En Samsung, borrar una ficha de la cuenta desde la app la elimina del todo en vez de dejarla con `DELETED=1`; la sincronización nunca veía el borrado. | Anotar URL y ETag en `BookState.pendingDeletes` **antes** de borrar (`SyncEngine.queueRemoteDeletes`) y mandar el DELETE desde esa lista. Probado contra un Radicale local. |
 | **CA importada vencida:** se aceptaba. | El verificador de Java no revisa la vigencia de sus autoridades de confianza. | Filtrar las vencidas al armar el almacén (`ServerTrust.parsePem`). |
 | **Rechazo de certificado como "error de red":** confundía justo al configurar. | Con IPv4 e IPv6, OkHttp informa el último intento; el error de TLS queda en los anteriores. | Buscar `SSLException` en `suppressed` y `cause` (`DavClient.sslCause`). |
 | **Resultado fuera de la pantalla:** "Probar conexión" parecía no hacer nada. | El mensaje quedaba debajo de los botones. | `BringIntoViewRequester` sobre el mensaje, y `liveRegion` para TalkBack. |

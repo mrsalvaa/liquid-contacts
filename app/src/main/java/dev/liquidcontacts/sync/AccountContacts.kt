@@ -42,6 +42,8 @@ class AccountContacts(private val resolver: ContentResolver, private val account
         }.orEmpty()
 
     fun reference(rawId: Long): String? = column(rawId, RawContacts.SYNC4)
+    fun href(rawId: Long): String? = column(rawId, RawContacts.SOURCE_ID)
+    fun etag(rawId: Long): String? = column(rawId, RawContacts.SYNC1)
     fun uid(rawId: Long): String? = column(rawId, RawContacts.SYNC2)
     fun isDirty(rawId: Long): Boolean = column(rawId, RawContacts.DIRTY) == "1"
 

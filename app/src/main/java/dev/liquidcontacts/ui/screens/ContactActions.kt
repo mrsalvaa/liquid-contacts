@@ -56,6 +56,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.liquidcontacts.sync.SyncEngine
+import dev.liquidcontacts.ui.components.dangerText
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -197,6 +201,17 @@ fun rememberContactActions(nav: ContactNav): ContactActions {
                 dialog(
                     DialogSpec(title) { dismiss ->
                         Text(str(R.string.delete_contact_text, Trash.DAYS), fontSize = 15.sp, color = p.contentSecondary)
+                        val onServer by produceState(false, ids) { value = withContext(Dispatchers.IO) { runCatching { Trash.onServer(ids) }.getOrDefault(false) } }
+                        if (onServer) {
+                            val server by SyncEngine.store.state.collectAsStateWithLifecycle()
+                            Text(
+                                str(R.string.delete_contact_server, server.nickname.ifEmpty { str(R.string.server_title) }),
+                                Modifier.padding(top = 10.dp),
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = p.dangerText,
+                            )
+                        }
                         Spacer(Modifier.height(16.dp))
                         DangerButton(str(R.string.delete), {
                             dismiss()
