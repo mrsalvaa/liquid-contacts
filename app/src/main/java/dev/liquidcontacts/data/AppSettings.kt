@@ -43,6 +43,11 @@ data class AppSettings(
      * celu, detectada al guardar.
      */
     val newContactAccount: String = "",
+    /**
+     * Color elegido para cada etiqueta: nombre en minúsculas → índice en ACCENT_HUES. Las que no
+     * están acá llevan uno fijo según el nombre (ver labelColor).
+     */
+    val labelColors: Map<String, Int> = emptyMap(),
 ) {
     val glassStyle: GlassStyle get() = GlassStyle(themeMode, backgroundMode, colorSet, accentColor, uiStyle, solidAccent)
 }

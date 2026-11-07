@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.telephony.TelephonyManager
 import dev.liquidcontacts.R
 import dev.liquidcontacts.contacts.ContactAccount
+import dev.liquidcontacts.contacts.ContactGroup
 import dev.liquidcontacts.contacts.SystemContacts
 import dev.liquidcontacts.core.model.ContactSummary
 import dev.liquidcontacts.core.phone.PhoneNumbers
@@ -50,6 +51,14 @@ object Repo {
 
     private val _book = MutableStateFlow(Book(emptyList(), loaded = false))
     val book: StateFlow<Book> = _book.asStateFlow()
+
+    private val _groups = MutableStateFlow<List<ContactGroup>?>(null)
+
+    /**
+     * Las etiquetas, releídas junto con la agenda. Van aparte de [book] porque crear, renombrar o
+     * borrar una etiqueta no cambia ningún contacto, y entonces [book] no avisa nada.
+     */
+    val groups: StateFlow<List<ContactGroup>?> = _groups.asStateFlow()
 
     private val _numbers = MutableStateFlow(PhoneNumbers("AR"))
 
@@ -115,6 +124,7 @@ object Repo {
             .sortedWith { a, b -> order.compare(a.displayName, b.displayName) }
             .map { Row(it, SpanishOrder.section(it.displayName)) }
         _book.value = Book(rows, loaded = true)
+        _groups.value = runCatching { contacts.groups() }.getOrDefault(_groups.value)
     }
 
     /** Apps de mensajería: publican sus fichas para Android, pero un contacto guardado ahí no les llega. */

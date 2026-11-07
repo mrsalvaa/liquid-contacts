@@ -739,6 +739,8 @@ class SystemContacts(private val app: android.content.Context) {
             }
         }
         resolver.registerContentObserver(Contacts.CONTENT_URI, true, observer)
+        // Las etiquetas también: otra app (o el sincronizador) puede crearlas o renombrarlas.
+        resolver.registerContentObserver(Groups.CONTENT_URI, true, observer)
         trySend(Unit)
         awaitClose { resolver.unregisterContentObserver(observer) }
     }.conflate()

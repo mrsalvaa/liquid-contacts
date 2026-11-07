@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -331,9 +332,9 @@ fun LabelsTab(ctx: TabContext) {
     val prompt = LocalPrompt.current
     val dialog = LocalDialog.current
     val p = LocalGlass.current
-    var groups by remember { mutableStateOf<List<ContactGroup>?>(null) }
-    // Las etiquetas cambian con la agenda (sincronizaciones, otras apps): se releen con ella.
-    LaunchedEffect(book) { groups = withContext(Dispatchers.IO) { Repo.contacts.groups() } }
+    // Se releen con la agenda y después de crear, renombrar o borrar una (Repo.reload).
+    val groups by Repo.groups.collectAsStateWithLifecycle()
+    val settings by Stores.settings.state.collectAsStateWithLifecycle()
     val local = remember { mutableStateOf<dev.liquidcontacts.contacts.ContactAccount?>(null) }
     LaunchedEffect(Unit) { local.value = withContext(Dispatchers.IO) { Repo.contacts.localAccount() } }
 
@@ -373,15 +374,26 @@ fun LabelsTab(ctx: TabContext) {
                     list.forEach { g ->
                         SettingRow(
                             g.title,
-                            Modifier.combinedClickable(onClick = { ctx.onLabel(g) }, onLongClick = {
+                            leading = { dev.liquidcontacts.ui.components.LabelDot(g.title, settings) },
+                            modifier = Modifier.combinedClickable(onClick = { ctx.onLabel(g) }, onLongClick = {
                                 sheet(
                                     SheetSpec(
                                         g.title,
                                         listOf(
                                             SheetAction(str(R.string.rename), Icons.Rounded.Edit) {
                                                 prompt(PromptSpec(str(R.string.rename_label), str(R.string.save), g.title) { t ->
-                                                    if (t.isNotBlank()) Repo.launch { Repo.contacts.renameGroup(g.id, t); Repo.reload() }
+                                                    if (t.isNotBlank()) {
+                                                        dev.liquidcontacts.ui.components.moveLabelColor(g.title, t.trim())
+                                                        Repo.launch { Repo.contacts.renameGroup(g.id, t); Repo.reload() }
+                                                    }
                                                 })
+                                            },
+                                            SheetAction(str(R.string.label_color), Icons.Rounded.Palette) {
+                                                dialog(
+                                                    dev.liquidcontacts.ui.glass.DialogSpec(str(R.string.label_color_title, g.title)) { dismiss ->
+                                                        dev.liquidcontacts.ui.components.LabelColorPicker(g.title, settings) { dismiss() }
+                                                    },
+                                                )
                                             },
                                             // Sin danger: el rojo de ui/glass no llega a 4,5:1 en claro; el diálogo que sigue sí es rojo.
                                             SheetAction(str(R.string.delete_label), Icons.Rounded.DeleteOutline) {
@@ -391,6 +403,10 @@ fun LabelsTab(ctx: TabContext) {
                                                         Spacer(Modifier.height(16.dp))
                                                         DangerButton(str(R.string.delete_label), {
                                                             dismiss()
+                                                            // Si la misma etiqueta sigue en otra cuenta, conserva el color.
+                                                            if (list.count { it.title.equals(g.title, ignoreCase = true) } == 1) {
+                                                                dev.liquidcontacts.ui.components.forgetLabelColor(g.title)
+                                                            }
                                                             Repo.launch { Repo.contacts.deleteGroup(g.id); Repo.reload() }
                                                         }, Modifier.fillMaxWidth())
                                                         Spacer(Modifier.height(8.dp))
@@ -426,7 +442,8 @@ fun LabelsTab(ctx: TabContext) {
 fun LabelScreen(group: ContactGroup, padding: PaddingValues, onBack: () -> Unit, nav: ContactNav) {
     val book by Repo.book.collectAsStateWithLifecycle()
     var members by remember { mutableStateOf<Set<Long>?>(null) }
-    LaunchedEffect(book) { members = withContext(Dispatchers.IO) { Repo.contacts.groupMembers(group.id) } }
+    val labels by Repo.groups.collectAsStateWithLifecycle()
+    LaunchedEffect(book, labels) { members = withContext(Dispatchers.IO) { Repo.contacts.groupMembers(group.id) } }
     val rows = remember(book, members) { members?.let { m -> book.rows.filter { it.summary.id in m } } }
     val selection = remember { ContactSelection() }
     val actions = rememberContactActions(nav)

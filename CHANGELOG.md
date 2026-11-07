@@ -4,6 +4,12 @@
 
 **English** | [Español](CHANGELOG.es.md)
 
+## Unreleased
+
+### Changed
+- Labels: creating, renaming or deleting one shows up right away, without restarting the app. Also on the contact screen and in each label.
+- Labels have a color: one is picked automatically from the name, and it can be changed by holding the label. It shows in the Labels tab and as colored pills on the contact screen.
+
 ## 1.3.3
 
 ### Changed

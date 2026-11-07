@@ -43,8 +43,10 @@
     <string name="label_name">Label name</string>
     <string name="no_labels">No labels</string>
     <string name="no_labels_hint">Labels group contacts: family, work, the club…</string>
-    <string name="labels_hint">Hold a label to rename or delete it. Add contacts to a label from their edit screen.</string>
+    <string name="labels_hint">Hold a label to rename it, change its color or delete it. Add contacts to a label from their edit screen.</string>
     <string name="rename_label">Rename label</string>
+    <string name="label_color">Color</string>
+    <string name="label_color_title">Color of “%1$s”</string>
     <string name="delete_label">Delete label</string>
     <string name="delete_label_title">Delete “%1$s”?</string>
     <string name="delete_label_text">The contacts are kept; they only lose this label.</string>

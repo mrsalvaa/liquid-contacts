@@ -116,7 +116,9 @@ fun ContactDetailScreen(contactId: Long, padding: PaddingValues, onBack: () -> U
     var contact by remember { mutableStateOf<Contact?>(null) }
     var gone by remember { mutableStateOf(false) }
     // Se relee cuando cambia la agenda (al editar, o si otra app lo cambia o lo borra).
-    LaunchedEffect(book) {
+    // Con las etiquetas como clave: sumar o quitar una no cambia la lista de contactos.
+    val labels by Repo.groups.collectAsStateWithLifecycle()
+    LaunchedEffect(book, labels) {
         val c = withContext(Dispatchers.IO) { Repo.contacts.load(contactId) }
         if (c == null) gone = true else contact = c
     }
@@ -207,7 +209,7 @@ fun ContactDetailScreen(contactId: Long, padding: PaddingValues, onBack: () -> U
         }
         if (c.groups.isNotEmpty()) {
             SectionLabel(str(R.string.tab_labels))
-            GlassCard { Text(c.groups.sorted().joinToString(" · "), Modifier.padding(vertical = 8.dp), fontSize = 16.sp) }
+            GlassCard { dev.liquidcontacts.ui.components.LabelPills(c.groups.sorted(), Modifier.padding(vertical = 10.dp)) }
         }
         if (!c.note.isNullOrBlank()) {
             SectionLabel(str(R.string.note))

@@ -43,8 +43,10 @@
     <string name="label_name">Nombre de la etiqueta</string>
     <string name="no_labels">Sin etiquetas</string>
     <string name="no_labels_hint">Las etiquetas agrupan contactos: familia, trabajo, el club…</string>
-    <string name="labels_hint">Mantené apretada una etiqueta para cambiarle el nombre o borrarla. Para sumar contactos a una etiqueta, editalos.</string>
+    <string name="labels_hint">Mantené apretada una etiqueta para cambiarle el nombre o el color, o para borrarla. Para sumar contactos a una etiqueta, editalos.</string>
     <string name="rename_label">Cambiar nombre de la etiqueta</string>
+    <string name="label_color">Color</string>
+    <string name="label_color_title">Color de “%1$s”</string>
     <string name="delete_label">Borrar etiqueta</string>
     <string name="delete_label_title">¿Borrar “%1$s”?</string>
     <string name="delete_label_text">Los contactos quedan; solo pierden esta etiqueta.</string>

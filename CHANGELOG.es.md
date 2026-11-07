@@ -4,6 +4,12 @@
 
 [English](CHANGELOG.md) | **Español**
 
+## Sin publicar
+
+### Cambios
+- Etiquetas: crear, renombrar o borrar una se ve en el momento, sin reiniciar la app. También en la ficha del contacto y dentro de cada etiqueta.
+- Las etiquetas tienen color: uno automático según el nombre, que se cambia manteniendo apretada la etiqueta. Se ve en la pestaña Etiquetas y como píldoras de color en la ficha.
+
 ## 1.3.3
 
 ### Cambios
