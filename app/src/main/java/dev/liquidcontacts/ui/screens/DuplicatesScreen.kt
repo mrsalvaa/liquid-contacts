@@ -24,6 +24,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import dev.liquidcontacts.data.Trash
+import dev.liquidcontacts.ui.components.dangerText
+import dev.liquidcontacts.sync.SyncEngine
+import dev.liquidcontacts.sync.SyncScheduler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -136,9 +140,13 @@ fun MergeScreen(contactIds: List<Long>, preselected: Boolean, padding: PaddingVa
     var merging by remember { mutableStateOf(false) }
     var backup by remember { mutableStateOf(false) }
     var deletes by remember { mutableStateOf(true) }
+    var onServer by remember { mutableStateOf(false) }
     LaunchedEffect(contactIds) { contacts = withContext(Dispatchers.IO) { contactIds.mapNotNull { Repo.contacts.loadFull(it) } } }
     LaunchedEffect(chosen) {
-        if (chosen.size >= 2) deletes = withContext(Dispatchers.IO) { Repo.contacts.mergeDeletes(chosen.toList()) }
+        if (chosen.size >= 2) {
+            deletes = withContext(Dispatchers.IO) { Repo.contacts.mergeDeletes(chosen.toList()) }
+            onServer = withContext(Dispatchers.IO) { runCatching { Trash.onServer(chosen) }.getOrDefault(false) }
+        }
     }
     val list = contacts ?: return
     val selected = list.filter { it.id in chosen }
@@ -147,7 +155,15 @@ fun MergeScreen(contactIds: List<Long>, preselected: Boolean, padding: PaddingVa
     fun merge(ids: List<Long>, merged: Contact) {
         merging = true
         Repo.launch {
-            val result = runCatching { Repo.contacts.merge(ids, merged) }.getOrNull()
+            val ours = context.getString(R.string.account_type)
+            val result = runCatching {
+                Repo.contacts.merge(ids, merged) { deleted ->
+                    // Las fichas de una libreta que se van a borrar también se borran del servidor.
+                    SyncEngine.queueRemoteDeletes(deleted.filter { it.second.type == ours && it.second.name != null }.map { it.first to it.second.name!! })
+                }
+            }.getOrNull()
+            // Se sube en el momento: la ficha que queda y los borrados (o se espera la conexión, con su aviso).
+            if (result != null) SyncScheduler.pushNow()
             withContext(Dispatchers.Main) {
                 merging = false
                 when {
@@ -178,6 +194,9 @@ fun MergeScreen(contactIds: List<Long>, preselected: Boolean, padding: PaddingVa
         dialog(
             DialogSpec(plural(R.plurals.merge_confirm_title, ids.size)) { dismiss ->
                 Text(str(if (deletes) R.string.merge_confirm_deletes else R.string.merge_confirm_links), fontSize = 15.sp, color = p.contentSecondary)
+                if (deletes && onServer) {
+                    Text(str(R.string.merge_confirm_server), Modifier.padding(top = 10.dp), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = p.dangerText)
+                }
                 Spacer(Modifier.height(16.dp))
                 GlassButton(str(R.string.merge), {
                     dismiss()

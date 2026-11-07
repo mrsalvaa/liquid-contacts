@@ -4,6 +4,12 @@
 
 **English** | [Español](CHANGELOG.es.md)
 
+## Unreleased
+
+### Fixed
+- Merging contacts from an address book did not delete the merged ones from the server (Samsung): now they are deleted right away, and the merge window shows a red warning.
+- Deleting many contacts from an address book at once goes through the mass-deletion brake again: the server is not touched until it is confirmed on the server screen. If cancelled, they download again.
+
 ## 1.3.1
 
 ### Fixed

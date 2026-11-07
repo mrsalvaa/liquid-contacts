@@ -99,5 +99,6 @@ object ContactSyncPlan {
         return null
     }
 
-    private fun isMass(deletes: Int, before: Int) = deletes > MASS_DELETE_MIN && deletes * 2 > before
+    /** Si borrar [deletes] de [before] es un borrado masivo (hay que confirmarlo antes). */
+    fun isMass(deletes: Int, before: Int) = deletes > MASS_DELETE_MIN && deletes * 2 > before
 }

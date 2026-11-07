@@ -158,6 +158,7 @@
     <string name="merge_undone">Merge undone</string>
     <string name="merge_undo_failed">Could not undo the merge</string>
     <string name="merge_confirm_deletes">The contacts become one and the others are deleted. You will have a few seconds to undo; after that it cannot be reverted.</string>
+    <string name="merge_confirm_server">The ones that are deleted are also deleted from the server right now, and from other devices that sync it. If you undo, they are uploaded again.</string>
     <string name="merge_confirm_links">They are in different accounts: they are shown as one contact and each account keeps its copy. Nothing is deleted.</string>
     <string name="merge_backup">Save a backup of the originals (.vcf)</string>
     <string name="merge_backup_hint">Before merging you choose where to save it. The file is not encrypted.</string>

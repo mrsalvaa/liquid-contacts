@@ -320,7 +320,18 @@ object SyncEngine {
         if (props.color != b.color) updateBook(url) { it.copy(color = props.color) }
         if (ctag != null && ctag == b.ctag && !changedHere && !b.massDeleteConfirmed) return
 
-        val remote = deletePending(dav, url, local, dav.listEtags(url))
+        val listed = dav.listEtags(url)
+        // Los borrados hechos desde la app pasan por el mismo freno que los demás: si son muchos,
+        // se espera a que el usuario confirme antes de tocar el servidor.
+        if (!b.massDeleteConfirmed) {
+            val deletes = b.pendingDeletes.count { it.href in listed } + local.count { it.deleted && it.href != null && it.href in listed }
+            val onServer = maxOf(b.lastCount, listed.size)
+            if (b.pendingDeletes.isNotEmpty() && ContactSyncPlan.isMass(deletes, onServer)) {
+                updateBook(url) { it.copy(hold = SyncHold(false, onServer, onServer - deletes, deletes)) }
+                return
+            }
+        }
+        val remote = deletePending(dav, url, local, listed)
         // Conflictos cuya ficha ya no existe se dan por resueltos.
         val conflicts = b.conflicts.filter { c -> local.any { it.rawId == c.rawId } }
         val ops = ContactSyncPlan.plan(remote, local, skip = conflicts.map { it.rawId }.toSet())
@@ -491,7 +502,8 @@ object SyncEngine {
         if (b.hold?.onServerSide == false) {
             val cards = cardsOf(b)
             cards.undelete(cards.cards().filter { it.deleted && it.href != null }.map { it.rawId })
-            updateBook(url) { it.copy(hold = null) }
+            // Las que el celular borró del todo no se borran en el servidor: vuelven a bajar.
+            updateBook(url) { it.copy(hold = null, pendingDeletes = emptyList(), ctag = null) }
             return@withContext syncAll()
         }
         Outcome.OK

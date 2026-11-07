@@ -671,11 +671,12 @@ class SystemContacts(private val app: android.content.Context) {
      * Une contactos que el usuario confirmó con la vista previa [merged]:
      * - Si son todos de una sola ficha y de la misma cuenta ([mergeDeletes]), la unión se escribe
      *   en la ficha del primero y se borran los demás (en un servidor CardDAV queda uno solo).
+ *   [beforeDelete] recibe las fichas que se van a borrar, antes de borrarlas.
      *   Devuelve una copia en memoria de los originales para [undoMerge].
      * - Si hay fichas de distintas cuentas, se vinculan (Android los muestra como uno) sin borrar
      *   nada de ninguna cuenta.
      */
-    fun merge(contactIds: List<Long>, merged: Contact): MergeResult {
+    fun merge(contactIds: List<Long>, merged: Contact, beforeDelete: (List<Pair<Long, ContactAccount>>) -> Unit = {}): MergeResult {
         require(contactIds.size >= 2)
         val raws = contactIds.map { rawContactIds(it) }
         if (mergeDeletes(contactIds)) {
@@ -686,6 +687,8 @@ class SystemContacts(private val app: android.content.Context) {
             save(EditableContact(keepRaw, account, merged.copy(photo = photo)), photoChanged)
             // Por ficha y con los ids de antes de escribir: al quedar con el mismo nombre y número,
             // Android junta las fichas en un contacto y el id de contacto de las otras deja de existir.
+            // Antes de borrar se avisa (la sincronización anota qué borrar en el servidor).
+            beforeDelete(raws.drop(1).map { it.single() })
             raws.drop(1).forEach { deleteRaw(it.single().first) }
             val id = contactIdOf(keepRaw) ?: error("la ficha no tiene contacto")
             return MergeResult(id, MergeUndo(keepRaw, account, originals.first().contact, originals.drop(1).map { it.contact }))

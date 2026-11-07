@@ -158,6 +158,7 @@
     <string name="merge_undone">Unión revertida</string>
     <string name="merge_undo_failed">No se pudo revertir la unión</string>
     <string name="merge_confirm_deletes">Quedan en un solo contacto y los demás se borran. Vas a tener unos segundos para deshacer; después no se puede revertir.</string>
+    <string name="merge_confirm_server">Los que se borran también se borran ahora del servidor, y de los otros dispositivos que lo sincronizan. Si deshacés, se vuelven a subir.</string>
     <string name="merge_confirm_links">Están en cuentas distintas: se muestran como un solo contacto y cada cuenta conserva su copia. No se borra nada.</string>
     <string name="merge_backup">Guardar respaldo de los originales (.vcf)</string>
     <string name="merge_backup_hint">Antes de unir elegís dónde guardarlo. El archivo no va cifrado.</string>

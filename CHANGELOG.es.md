@@ -4,6 +4,12 @@
 
 [English](CHANGELOG.md) | **Español**
 
+## Sin publicar
+
+### Arreglos
+- Unir contactos de una libreta no borraba del servidor los que se unían (Samsung): ahora se borran en el momento, y la ventana de unir avisa en rojo.
+- Borrar muchos contactos de una libreta de golpe vuelve a pasar por el freno de borrado masivo: el servidor no se toca hasta confirmarlo en la pantalla del servidor. Si se cancela, vuelven a bajar.
+
 ## 1.3.1
 
 ### Arreglos
