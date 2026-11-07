@@ -4,7 +4,7 @@
 
 [English](CHANGELOG.md) | **Español**
 
-## Sin publicar
+## 1.3.1
 
 ### Arreglos
 - Borrar un contacto de una libreta no lo borraba del servidor en algunos celulares (Samsung): ahora se borra en el momento, y sin conexión queda en espera hasta que vuelva.

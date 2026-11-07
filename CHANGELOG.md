@@ -4,7 +4,7 @@
 
 **English** | [Español](CHANGELOG.es.md)
 
-## Unreleased
+## 1.3.1
 
 ### Fixed
 - Deleting a contact from an address book did not delete it from the server on some phones (Samsung): now it is deleted right away, and without a connection it waits until the connection is back.
