@@ -4,7 +4,7 @@
 
 [English](CHANGELOG.md) | **Español**
 
-## Sin publicar
+## 1.3.2
 
 ### Arreglos
 - Unir contactos de una libreta no borraba del servidor los que se unían (Samsung): ahora se borran en el momento, y la ventana de unir avisa en rojo.
