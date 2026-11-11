@@ -4,6 +4,11 @@
 
 [English](CHANGELOG.md) | **Español**
 
+## Sin publicar
+
+### Cambiado
+- Ficha del contacto: quien no tiene foto aparece con un círculo de cristal y la persona en blanco, en vez del círculo de color con las iniciales.
+
 ## 1.4.0
 
 ### Cambios

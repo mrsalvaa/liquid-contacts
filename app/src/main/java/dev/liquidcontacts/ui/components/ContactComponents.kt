@@ -206,6 +206,41 @@ fun ContactAvatar(name: String, modifier: Modifier = Modifier, size: Dp = 44.dp,
     }
 }
 
+/**
+ * El avatar grande de la ficha cuando no hay foto: un círculo de cristal con borde fino y una
+ * persona en blanco (cabeza redonda y el cuerpo como una lente), el estilo Liquid de la suite. El
+ * mismo dibujo que los avisos de Liquid Messages (NotificationAvatar).
+ */
+@Composable
+fun GlassPersonAvatar(modifier: Modifier = Modifier, size: Dp = 112.dp) {
+    val p = LocalGlass.current
+    // En claro, un velo gris para que la persona blanca no se pierda sobre el cristal claro.
+    val veil = if (p.dark || p.solid) null else androidx.compose.ui.graphics.Color(0xA67C8296)
+    dev.liquidcontacts.ui.glass.GlassSurface(
+        modifier.size(size).clearAndSetSemantics { },
+        shape = CircleShape,
+        tint = veil,
+        frost = 4.dp,
+        shadowRadius = 12.dp,
+    ) {
+        val person = if (p.solid && !p.dark) p.contentSecondary else androidx.compose.ui.graphics.Color.White
+        androidx.compose.foundation.Canvas(Modifier.size(size)) {
+            val s = this.size.width
+            drawCircle(person, radius = s * 0.175f, center = Offset(s / 2, s * 0.385f))
+            val left = s * 0.19f
+            val right = s * 0.81f
+            val waist = s * 0.82f
+            val body = androidx.compose.ui.graphics.Path().apply {
+                moveTo(left, waist)
+                arcTo(androidx.compose.ui.geometry.Rect(left, s * 0.635f, right, waist + (waist - s * 0.635f)), 180f, 180f, false)
+                arcTo(androidx.compose.ui.geometry.Rect(left, waist - s * 0.09f, right, waist + s * 0.09f), 0f, 180f, false)
+                close()
+            }
+            drawPath(body, person)
+        }
+    }
+}
+
 /** Color del avatar: uno de los 9 tonos de énfasis (sin el gris), apagado como el resto de la suite. */
 fun avatarColor(name: String, dark: Boolean): Color {
     val hues = ACCENT_HUES.dropLast(1)

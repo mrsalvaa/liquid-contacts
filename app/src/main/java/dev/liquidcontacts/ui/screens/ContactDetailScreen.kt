@@ -150,12 +150,16 @@ fun ContactDetailScreen(contactId: Long, padding: PaddingValues, onBack: () -> U
             val photoUri = book.rows.firstOrNull { it.summary.id == contactId }?.summary?.photoUri
             val name = c.displayName.ifBlank { str(R.string.no_name) }
             // Tocar la foto la abre grande.
-            ContactAvatar(
-                c.displayName,
-                if (photoUri == null) Modifier else Modifier.clip(CircleShape).clickable(onClickLabel = str(R.string.view_photo), role = Role.Image) { nav.onPhoto(contactId, name) },
-                size = 112.dp,
-                photoUri = photoUri,
-            )
+            if (photoUri == null) {
+                dev.liquidcontacts.ui.components.GlassPersonAvatar(size = 112.dp)
+            } else {
+                ContactAvatar(
+                    c.displayName,
+                    Modifier.clip(CircleShape).clickable(onClickLabel = str(R.string.view_photo), role = Role.Image) { nav.onPhoto(contactId, name) },
+                    size = 112.dp,
+                    photoUri = photoUri,
+                )
+            }
             Text(
                 c.displayName.ifBlank { str(R.string.no_name) },
                 Modifier.padding(top = 14.dp).semantics { heading() },

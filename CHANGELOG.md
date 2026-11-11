@@ -4,6 +4,11 @@
 
 **English** | [Español](CHANGELOG.es.md)
 
+## Unreleased
+
+### Changed
+- Contact screen: a contact without a photo shows a glass circle with a white person instead of the colored circle with initials.
+
 ## 1.4.0
 
 ### Changed
