@@ -227,13 +227,17 @@ fun GlassPersonAvatar(modifier: Modifier = Modifier, size: Dp = 112.dp) {
         androidx.compose.foundation.Canvas(Modifier.size(size)) {
             val s = this.size.width
             drawCircle(person, radius = s * 0.175f, center = Offset(s / 2, s * 0.385f))
-            val left = s * 0.19f
-            val right = s * 0.81f
-            val waist = s * 0.82f
+            // Abajo, un arco con el mismo centro que el círculo: acompaña al borde.
+            val c = s / 2
+            val half = s * 0.31f
+            val inner = s * 0.43f
+            val drop = kotlin.math.sqrt(inner * inner - half * half)
+            val waist = c + drop
+            val angle = Math.toDegrees(kotlin.math.atan2(drop.toDouble(), half.toDouble())).toFloat()
             val body = androidx.compose.ui.graphics.Path().apply {
-                moveTo(left, waist)
-                arcTo(androidx.compose.ui.geometry.Rect(left, s * 0.635f, right, waist + (waist - s * 0.635f)), 180f, 180f, false)
-                arcTo(androidx.compose.ui.geometry.Rect(left, waist - s * 0.09f, right, waist + s * 0.09f), 0f, 180f, false)
+                moveTo(c - half, waist)
+                arcTo(androidx.compose.ui.geometry.Rect(c - half, s * 0.635f, c + half, waist + (waist - s * 0.635f)), 180f, 180f, false)
+                arcTo(androidx.compose.ui.geometry.Rect(c - inner, c - inner, c + inner, c + inner), angle, 180f - 2 * angle, false)
                 close()
             }
             drawPath(body, person)
